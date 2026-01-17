@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "الترف للحوالات المالية",
+    "slug": "altarf-money-transfer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.altaraf.moneytransfer"
+    },
+    "android": {
+      "package": "com.altaraf.moneytransfer",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#2E3A8E"
+      },
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "userInterfaceStyle": "automatic"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "EXPO_PUBLIC_SUPABASE_URL": "https://ouzqziufhmdimjqufsoe.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91enF6aXVmaG1kaW1qcXVmc29lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNDM4NzUsImV4cCI6MjA4MzYxOTg3NX0.frcvfjcgPG2zZvVh__otByDzy_ckr5HjmxQi6574rW8",
+      "router": {},
+      "eas": {
+        "projectId": "e882c2a8-6dd9-459f-88da-b57f96684e6f"
+      }
+    },
+    "owner": "arti_codetr"
+  }
+}
