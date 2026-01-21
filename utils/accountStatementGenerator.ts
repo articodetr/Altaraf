@@ -139,7 +139,6 @@ export function generateAccountStatementHTML(
 
       return `
         <div class="currency-section ${sectionPageBreakClass}">
-          ${idx > 0 ? '<div class="page-top-space"></div>' : ''}
           <div class="section-title">
             <h2>كشف حساب ${customerName} - ${currencyName}</h2>
           </div>
@@ -185,19 +184,9 @@ export function generateAccountStatementHTML(
   <title>كشف الحساب - ${customerName}</title>
 
   <style>
-    /* هوامش ثابتة لكل صفحة (الأهم) */
     @page {
       size: A4 portrait;
-      margin: 15mm 12mm 25mm 12mm;
-    }
-
-    /* مساحة في بداية كل صفحة جديدة */
-    @page :first {
-      margin-top: 15mm;
-    }
-
-    @page :left, @page :right {
-      margin-top: 25mm;
+      margin: 15mm 12mm 15mm 12mm;
     }
 
     * { box-sizing: border-box; }
@@ -213,24 +202,29 @@ export function generateAccountStatementHTML(
       print-color-adjust: exact;
     }
 
-    body {
-      padding: 0;
-      padding-bottom: 35mm;
-    }
-
-    /* مسافة بسيطة داخل الصفحة بدون تغيير مكان الترويسة */
     .print-container {
-      padding: 10mm 0;
+      padding: 6mm 0;
     }
 
     .header-wrapper {
-      margin-bottom: 20px;
+      margin-bottom: 6mm;
       page-break-inside: avoid;
       break-inside: avoid;
     }
 
+    /* مساحة جانبية للجداول فقط */
+    .tables-area {
+      padding-left: 10mm;
+      padding-right: 10mm;
+    }
+
+    /* مسافة قبل أول جدول في الصفحة الأولى */
+    .tables-area .currency-section:first-child {
+      margin-top: 2mm;
+    }
+
     .currency-section {
-      margin-bottom: 12mm;
+      margin-bottom: 6mm;
     }
 
     .currency-section.page-break-after {
@@ -260,32 +254,30 @@ export function generateAccountStatementHTML(
       border: 2px solid #000;
       border-top: none;
       background: #fff;
-
-      /* اسمح للجدول أن ينقسم طبيعيًا بين الصفحات */
+      margin: 0 0 6mm 0;
       page-break-inside: auto;
       break-inside: auto;
     }
 
     thead {
-      /* هذا هو الذي يجعل رأس الأعمدة يتكرر في كل صفحة */
       display: table-header-group;
     }
 
     th {
       background-color: #e5e7eb;
       font-weight: bold;
-      padding: 10px 8px;
+      padding: 8px 6px;
       border: 1px solid #000;
-      font-size: 14px;
+      font-size: 13px;
       text-align: center;
       color: #111827;
     }
 
     td {
-      padding: 8px 6px;
+      padding: 7px 6px;
       border: 1px solid #000;
       text-align: center;
-      font-size: 13px;
+      font-size: 12px;
       color: #374151;
       vertical-align: middle;
     }
@@ -298,7 +290,6 @@ export function generateAccountStatementHTML(
       word-break: break-word;
     }
 
-    /* منع قدر الإمكان تقسيم الصف داخل صفحتين */
     tr, th, td {
       break-inside: avoid;
       page-break-inside: avoid;
@@ -315,6 +306,10 @@ export function generateAccountStatementHTML(
       background-color: #f3f4f6;
       font-weight: bold;
       font-size: 14px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      break-before: avoid;
+      page-break-before: avoid;
     }
 
     .final-row {
@@ -322,10 +317,14 @@ export function generateAccountStatementHTML(
       font-weight: bold;
       font-size: 15px;
       color: #1e40af;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      break-before: avoid;
+      page-break-before: avoid;
     }
 
     .footer {
-      margin-top: 10mm;
+      margin-top: 6mm;
       text-align: center;
       font-size: 11px;
       color: #6b7280;
@@ -333,28 +332,6 @@ export function generateAccountStatementHTML(
       border-top: 1px solid #e5e7eb;
       page-break-inside: avoid;
       break-inside: avoid;
-    }
-
-    /* تاريخ ثابت في أسفل كل صفحة - يحاكي دفتر الحسابات */
-    .page-date-footer {
-      position: fixed;
-      bottom: 10mm;
-      left: 12mm;
-      right: 12mm;
-      text-align: center;
-      font-size: 12px;
-      color: #374151;
-      padding: 8px 0;
-      border-top: 1px solid #d1d5db;
-      background: #fff;
-      z-index: 1000;
-    }
-
-    /* مساحة فارغة في بداية كل صفحة جديدة */
-    .page-top-space {
-      height: 10mm;
-      page-break-after: avoid;
-      break-after: avoid;
     }
 
     ${generatePDFHeaderStyles()}
@@ -366,51 +343,35 @@ export function generateAccountStatementHTML(
         color-adjust: exact !important;
       }
 
-      /* تأكيد الهوامش داخل الطباعة أيضًا */
       @page {
         size: A4 portrait;
-        margin: 15mm 12mm 25mm 12mm;
+        margin: 15mm 12mm 15mm 12mm;
         orphans: 3;
         widows: 3;
       }
 
-      @page :first {
-        margin-top: 15mm;
-      }
-
-      @page :left, @page :right {
-        margin-top: 25mm;
-      }
-
-      .print-container { padding: 10mm 0 !important; }
+      .print-container { padding: 6mm 0 !important; }
       thead { display: table-header-group !important; }
 
-      body {
-        padding-bottom: 35mm !important;
-      }
-
-      .page-date-footer {
-        position: fixed !important;
-        bottom: 10mm !important;
-        display: block !important;
+      .tables-area {
+        padding-left: 10mm !important;
+        padding-right: 10mm !important;
       }
     }
   </style>
 </head>
 
 <body>
-  <!-- تاريخ ثابت في أسفل كل صفحة -->
-  <div class="page-date-footer">
-    ${reportDate}
-  </div>
-
   <div class="print-container">
     <!-- الترويسة: تبقى كما هي في الصفحة الأولى -->
     <div class="header-wrapper">
       ${headerHTML}
     </div>
 
-    ${currencySections}
+    <!-- محتوى الجداول فقط: مساحة جانبية للجداول -->
+    <div class="tables-area">
+      ${currencySections}
+    </div>
 
     <div class="footer">
       <div>تاريخ الطباعة: ${reportDate}</div>
