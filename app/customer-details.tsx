@@ -15,10 +15,10 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDataRefresh } from '@/contexts/DataRefreshContext';
-import { ArrowRight, Phone, MessageCircle, Settings, Plus, Receipt, ChartBar as BarChart3, Calculator, FileText, ChevronDown, ChevronUp, Search, X } from 'lucide-react-native';
+import { ArrowRight, Phone, MessageCircle, Settings, Plus, Receipt, ChartBar as BarChart3, Calculator, FileText, ChevronDown, ChevronUp, Search, X, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { Customer, AccountMovement, CURRENCIES } from '@/types/database';
-import { format, isSameMonth, isSameYear } from 'date-fns';
+import { format, isSameMonth, isSameYear, startOfMonth, endOfMonth, subMonths, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -180,6 +180,11 @@ export default function CustomerDetailsScreen() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showDateRangeModal, setShowDateRangeModal] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [customStartDateText, setCustomStartDateText] = useState('');
+  const [customEndDateText, setCustomEndDateText] = useState('');
 
   const loadCustomerData = useCallback(async () => {
     try {
@@ -280,7 +285,7 @@ export default function CustomerDetailsScreen() {
     }
   };
 
-  const handlePrint = async () => {
+  const handlePrint = () => {
     if (!customer) {
       return;
     }
@@ -290,7 +295,21 @@ export default function CustomerDetailsScreen() {
       return;
     }
 
+    setShowDateRangeModal(true);
+  };
+
+  const executePrint = async (movementsToPrint: AccountMovement[]) => {
+    if (!customer) {
+      return;
+    }
+
+    if (movementsToPrint.length === 0) {
+      Alert.alert('تنبيه', 'لا توجد حركات في الفترة المحددة');
+      return;
+    }
+
     setIsPrinting(true);
+    setShowDateRangeModal(false);
 
     try {
       let logoDataUrl: string | undefined;
@@ -315,7 +334,7 @@ export default function CustomerDetailsScreen() {
       console.log('[CustomerDetails] Generating HTML for PDF...');
       const html = generateAccountStatementHTML(
         customer.name,
-        movements,
+        movementsToPrint,
         logoDataUrl,
         customer.is_profit_loss_account,
       );
@@ -340,6 +359,93 @@ export default function CustomerDetailsScreen() {
     } finally {
       setIsPrinting(false);
     }
+  };
+
+  const handlePrintAll = () => {
+    executePrint(movements);
+  };
+
+  const handlePrintDateRange = () => {
+    if (!startDate || !endDate) {
+      Alert.alert('تنبيه', 'الرجاء اختيار الفترة الزمنية');
+      return;
+    }
+
+    if (startDate > endDate) {
+      Alert.alert('تنبيه', 'تاريخ البداية يجب أن يكون أقدم من تاريخ النهاية');
+      return;
+    }
+
+    const filtered = movements.filter((movement) => {
+      const movementDate = new Date(movement.created_at);
+      return movementDate >= startOfDay(startDate) && movementDate <= endOfDay(endDate);
+    });
+
+    executePrint(filtered);
+  };
+
+  const setQuickDateRange = (type: 'today' | 'week' | 'month' | 'lastMonth' | 'all') => {
+    const now = new Date();
+
+    switch (type) {
+      case 'today':
+        setStartDate(startOfDay(now));
+        setEndDate(endOfDay(now));
+        setCustomStartDateText(format(startOfDay(now), 'dd/MM/yyyy'));
+        setCustomEndDateText(format(endOfDay(now), 'dd/MM/yyyy'));
+        break;
+      case 'week':
+        setStartDate(subDays(now, 7));
+        setEndDate(now);
+        setCustomStartDateText(format(subDays(now, 7), 'dd/MM/yyyy'));
+        setCustomEndDateText(format(now, 'dd/MM/yyyy'));
+        break;
+      case 'month':
+        setStartDate(startOfMonth(now));
+        setEndDate(endOfMonth(now));
+        setCustomStartDateText(format(startOfMonth(now), 'dd/MM/yyyy'));
+        setCustomEndDateText(format(endOfMonth(now), 'dd/MM/yyyy'));
+        break;
+      case 'lastMonth':
+        const lastMonth = subMonths(now, 1);
+        setStartDate(startOfMonth(lastMonth));
+        setEndDate(endOfMonth(lastMonth));
+        setCustomStartDateText(format(startOfMonth(lastMonth), 'dd/MM/yyyy'));
+        setCustomEndDateText(format(endOfMonth(lastMonth), 'dd/MM/yyyy'));
+        break;
+      case 'all':
+        setStartDate(null);
+        setEndDate(null);
+        setCustomStartDateText('');
+        setCustomEndDateText('');
+        break;
+    }
+  };
+
+  const parseCustomDate = (dateText: string): Date | null => {
+    const parts = dateText.split('/');
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0]);
+    const month = parseInt(parts[1]) - 1;
+    const year = parseInt(parts[2]);
+
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+
+    return new Date(year, month, day);
+  };
+
+  const handleCustomDateChange = () => {
+    const parsedStartDate = parseCustomDate(customStartDateText);
+    const parsedEndDate = parseCustomDate(customEndDateText);
+
+    if (!parsedStartDate || !parsedEndDate) {
+      Alert.alert('تنبيه', 'الرجاء إدخال التواريخ بصيغة صحيحة (يوم/شهر/سنة)');
+      return;
+    }
+
+    setStartDate(parsedStartDate);
+    setEndDate(parsedEndDate);
   };
 
   const handleSettleUp = () => {
@@ -1118,6 +1224,165 @@ export default function CustomerDetailsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <Modal
+        visible={showDateRangeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDateRangeModal(false)}
+      >
+        <View style={styles.dateRangeModalOverlay}>
+          <View style={styles.dateRangeModalContent}>
+            <View style={styles.dateRangeHeader}>
+              <TouchableOpacity
+                onPress={() => setShowDateRangeModal(false)}
+                style={styles.dateRangeCloseButton}
+              >
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+              <Text style={styles.dateRangeTitle}>اختر الفترة الزمنية</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            <ScrollView style={styles.dateRangeScroll}>
+              <View style={styles.quickOptionsSection}>
+                <Text style={styles.sectionTitle}>خيارات سريعة:</Text>
+                <View style={styles.quickOptionsGrid}>
+                  <TouchableOpacity
+                    style={styles.quickOptionButton}
+                    onPress={() => setQuickDateRange('today')}
+                  >
+                    <Calendar size={18} color="#10B981" />
+                    <Text style={styles.quickOptionText}>اليوم</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.quickOptionButton}
+                    onPress={() => setQuickDateRange('week')}
+                  >
+                    <Calendar size={18} color="#10B981" />
+                    <Text style={styles.quickOptionText}>آخر 7 أيام</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.quickOptionButton}
+                    onPress={() => setQuickDateRange('month')}
+                  >
+                    <Calendar size={18} color="#10B981" />
+                    <Text style={styles.quickOptionText}>هذا الشهر</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.quickOptionButton}
+                    onPress={() => setQuickDateRange('lastMonth')}
+                  >
+                    <Calendar size={18} color="#10B981" />
+                    <Text style={styles.quickOptionText}>الشهر الماضي</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.customDateSection}>
+                <Text style={styles.sectionTitle}>تخصيص الفترة:</Text>
+                <Text style={styles.dateFormatHint}>
+                  الصيغة: يوم/شهر/سنة (مثال: 01/01/2024)
+                </Text>
+
+                <View style={styles.dateInputContainer}>
+                  <Text style={styles.dateInputLabel}>من تاريخ:</Text>
+                  <TextInput
+                    style={styles.dateInput}
+                    placeholder="01/01/2024"
+                    placeholderTextColor="#9CA3AF"
+                    value={customStartDateText}
+                    onChangeText={setCustomStartDateText}
+                    keyboardType="numeric"
+                    textAlign="right"
+                  />
+                </View>
+
+                <View style={styles.dateInputContainer}>
+                  <Text style={styles.dateInputLabel}>إلى تاريخ:</Text>
+                  <TextInput
+                    style={styles.dateInput}
+                    placeholder="31/12/2024"
+                    placeholderTextColor="#9CA3AF"
+                    value={customEndDateText}
+                    onChangeText={setCustomEndDateText}
+                    keyboardType="numeric"
+                    textAlign="right"
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.applyCustomDateButton}
+                  onPress={handleCustomDateChange}
+                >
+                  <Text style={styles.applyCustomDateButtonText}>
+                    تطبيق التواريخ المخصصة
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {startDate && endDate && (
+                <View style={styles.selectedRangePreview}>
+                  <Text style={styles.selectedRangeTitle}>الفترة المحددة:</Text>
+                  <Text style={styles.selectedRangeText}>
+                    من {format(startDate, 'dd MMMM yyyy', { locale: ar })}
+                  </Text>
+                  <Text style={styles.selectedRangeText}>
+                    إلى {format(endDate, 'dd MMMM yyyy', { locale: ar })}
+                  </Text>
+                  <Text style={styles.movementsCountText}>
+                    عدد الحركات:{' '}
+                    {
+                      movements.filter((m) => {
+                        const movementDate = new Date(m.created_at);
+                        return (
+                          movementDate >= startOfDay(startDate) &&
+                          movementDate <= endOfDay(endDate)
+                        );
+                      }).length
+                    }{' '}
+                    حركة
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={styles.dateRangeActions}>
+              <TouchableOpacity
+                style={styles.printAllButton}
+                onPress={handlePrintAll}
+                disabled={isPrinting}
+              >
+                {isPrinting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <FileText size={18} color="#FFFFFF" />
+                    <Text style={styles.printAllButtonText}>
+                      طباعة التقرير كامل ({movements.length} حركة)
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.printRangeButton,
+                  (!startDate || !endDate || isPrinting) &&
+                    styles.printRangeButtonDisabled,
+                ]}
+                onPress={handlePrintDateRange}
+                disabled={!startDate || !endDate || isPrinting}
+              >
+                <FileText size={18} color="#FFFFFF" />
+                <Text style={styles.printRangeButtonText}>
+                  طباعة الفترة المحددة
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1556,5 +1821,190 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 8,
     textAlign: 'right',
+  },
+  dateRangeModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  dateRangeModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+  },
+  dateRangeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dateRangeTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  dateRangeCloseButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateRangeScroll: {
+    maxHeight: 500,
+  },
+  quickOptionsSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+    textAlign: 'right',
+  },
+  quickOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  quickOptionButton: {
+    backgroundColor: '#ECFDF5',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    minWidth: '45%',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  quickOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#059669',
+  },
+  customDateSection: {
+    padding: 20,
+  },
+  dateFormatHint: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 16,
+    textAlign: 'right',
+  },
+  dateInputContainer: {
+    marginBottom: 16,
+  },
+  dateInputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+    textAlign: 'right',
+  },
+  dateInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+    textAlign: 'right',
+  },
+  applyCustomDateButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  applyCustomDateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  selectedRangePreview: {
+    margin: 20,
+    marginTop: 0,
+    padding: 16,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  selectedRangeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0369A1',
+    marginBottom: 8,
+    textAlign: 'right',
+  },
+  selectedRangeText: {
+    fontSize: 13,
+    color: '#075985',
+    marginBottom: 4,
+    textAlign: 'right',
+  },
+  movementsCountText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0369A1',
+    marginTop: 8,
+    textAlign: 'right',
+  },
+  dateRangeActions: {
+    padding: 20,
+    paddingTop: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  printAllButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  printAllButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  printRangeButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  printRangeButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+    opacity: 0.5,
+  },
+  printRangeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
