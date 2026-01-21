@@ -7,6 +7,11 @@ interface MovementWithBalance extends AccountMovement {
   runningBalance: number;
 }
 
+function getCurrencySymbol(code: string): string {
+  const currency = CURRENCIES.find((c) => c.code === code);
+  return currency?.symbol || code;
+}
+
 function getCurrencyName(code: string): string {
   const currency = CURRENCIES.find((c) => c.code === code);
   return currency?.name || code;
@@ -22,15 +27,16 @@ export function generateAccountStatementHTML(
 
   const filteredMovements = allMovements
     .filter((m) => {
-      if (isProfitLossAccount) return true;
+      if (isProfitLossAccount) {
+        return true;
+      }
       return !(m as any).is_commission_movement;
     })
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-  // Combine base movement + related commission (if exists)
+  // Helper function to get combined amount including related commission
   const getCombinedAmount = (movement: AccountMovement): number => {
     const baseAmount = Number(movement.amount);
-
     const relatedCommissions = allMovements.filter(
       (m) =>
         (m as any).is_commission_movement === true &&
@@ -39,19 +45,126 @@ export function generateAccountStatementHTML(
         m.movement_type === movement.movement_type &&
         m.currency === movement.currency
     );
-
-    const commissionTotal = relatedCommissions.reduce((sum, m) => sum + Number(m.amount), 0);
+    const commissionTotal = relatedCommissions.reduce(
+      (sum, m) => sum + Number(m.amount),
+      0,
+    );
     return baseAmount + commissionTotal;
   };
 
-  // Group by currency
+  // Group movements by currency
   const groupedByCurrency = filteredMovements.reduce((acc, movement) => {
-    if (!acc[movement.currency]) acc[movement.currency] = [];
+    if (!acc[movement.currency]) {
+      acc[movement.currency] = [];
+    }
     acc[movement.currency].push(movement);
+
     return acc;
   }, {} as Record<string, AccountMovement[]>);
 
   const reportDate = format(new Date(), 'EEEE، dd MMMM yyyy', { locale: ar });
+
+  // Generate sections for each currency
+  const currencySections = Object.entries(groupedByCurrency).map(([curr, currMovements]) => {
+    const movementsWithBalance: MovementWithBalance[] = [];
+    let runningBalance = 0;
+
+    currMovements.forEach((movement) => {
+      const combinedAmount = getCombinedAmount(movement);
+
+      if (movement.movement_type === 'incoming') {
+        runningBalance += combinedAmount;
+      } else {
+        runningBalance -= combinedAmount;
+      }
+
+      movementsWithBalance.push({
+        ...movement,
+        runningBalance,
+      });
+    });
+
+    const totalOutgoing = currMovements
+      .filter(m => m.movement_type === 'outgoing')
+      .reduce((sum, m) => sum + getCombinedAmount(m), 0);
+
+    const totalIncoming = currMovements
+      .filter(m => m.movement_type === 'incoming')
+      .reduce((sum, m) => sum + getCombinedAmount(m), 0);
+
+    const finalBalance = totalIncoming - totalOutgoing;
+    const currencyName = getCurrencyName(curr);
+
+    const movementRows = movementsWithBalance
+      .map((movement) => {
+        const balanceDisplay = movement.runningBalance > 0
+          ? `${Math.round(movement.runningBalance).toLocaleString('en-US')} ${currencyName} (له)`
+          : movement.runningBalance < 0
+          ? `${Math.round(Math.abs(movement.runningBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
+          : '-';
+
+        const dateStr = format(new Date(movement.created_at), 'dd/MM/yyyy');
+        const combinedAmount = getCombinedAmount(movement);
+        const incomingAmount = movement.movement_type === 'incoming'
+          ? Math.round(combinedAmount).toLocaleString('en-US')
+          : '-';
+        const outgoingAmount = movement.movement_type === 'outgoing'
+          ? Math.round(combinedAmount).toLocaleString('en-US')
+          : '-';
+
+        return `
+        <tr>
+          <td class="cell text-center">${dateStr}</td>
+          <td class="cell" style="text-align: right; padding-right: 12px;">${movement.notes || movement.movement_number}</td>
+          <td class="cell text-center">${incomingAmount}</td>
+          <td class="cell text-center">${outgoingAmount}</td>
+          <td class="cell text-center">${balanceDisplay}</td>
+        </tr>
+        `;
+      })
+      .join('');
+
+    const finalBalanceDisplay = finalBalance > 0
+      ? `${Math.round(finalBalance).toLocaleString('en-US')} ${currencyName} (له)`
+      : finalBalance < 0
+      ? `${Math.round(Math.abs(finalBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
+      : '-';
+
+    const totalIncomingStr = totalIncoming > 0 ? Math.round(totalIncoming).toLocaleString('en-US') : '-';
+    const totalOutgoingStr = totalOutgoing > 0 ? Math.round(totalOutgoing).toLocaleString('en-US') : '-';
+
+    return `
+    <div class="currency-section">
+      <div class="section-title">
+        <h2>كشف حساب ${customerName} - ${currencyName}</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 12%;">التاريخ</th>
+            <th style="width: 38%;">البيان</th>
+            <th style="width: 15%;">له</th>
+            <th style="width: 15%;">عليه</th>
+            <th style="width: 20%;">الرصيد</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${movementRows}
+          <tr class="total-row">
+            <td colspan="2" class="cell text-center">المجموع</td>
+            <td class="cell text-center">${totalIncomingStr}</td>
+            <td class="cell text-center">${totalOutgoingStr}</td>
+            <td class="cell text-center">-</td>
+          </tr>
+          <tr class="final-row">
+            <td colspan="4" class="cell text-center"><strong>الرصيد النهائي</strong></td>
+            <td class="cell text-center"><strong>${finalBalanceDisplay}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    `;
+  }).join('');
 
   const headerHTML = generatePDFHeaderHTML({
     title: `كشف حساب العميل: ${customerName}`,
@@ -62,285 +175,115 @@ export function generateAccountStatementHTML(
     showPhones: true,
   });
 
-  const currencies = Object.entries(groupedByCurrency);
-
-  const currencySections = currencies
-    .map(([curr, currMovements], idx) => {
-      const currencyName = getCurrencyName(curr);
-
-      // Build running balance rows
-      const movementsWithBalance: MovementWithBalance[] = [];
-      let runningBalance = 0;
-
-      currMovements.forEach((movement) => {
-        const combinedAmount = getCombinedAmount(movement);
-
-        if (movement.movement_type === 'incoming') runningBalance += combinedAmount;
-        else runningBalance -= combinedAmount;
-
-        movementsWithBalance.push({
-          ...movement,
-          runningBalance,
-        });
-      });
-
-      const totalOutgoing = currMovements
-        .filter((m) => m.movement_type === 'outgoing')
-        .reduce((sum, m) => sum + getCombinedAmount(m), 0);
-
-      const totalIncoming = currMovements
-        .filter((m) => m.movement_type === 'incoming')
-        .reduce((sum, m) => sum + getCombinedAmount(m), 0);
-
-      const finalBalance = totalIncoming - totalOutgoing;
-
-      const finalBalanceDisplay =
-        finalBalance > 0
-          ? `${Math.round(finalBalance).toLocaleString('en-US')} ${currencyName} (له)`
-          : finalBalance < 0
-            ? `${Math.round(Math.abs(finalBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
-            : '-';
-
-      const totalIncomingStr = totalIncoming > 0 ? Math.round(totalIncoming).toLocaleString('en-US') : '-';
-      const totalOutgoingStr = totalOutgoing > 0 ? Math.round(totalOutgoing).toLocaleString('en-US') : '-';
-
-      const movementRows = movementsWithBalance
-        .map((movement) => {
-          const balanceDisplay =
-            movement.runningBalance > 0
-              ? `${Math.round(movement.runningBalance).toLocaleString('en-US')} ${currencyName} (له)`
-              : movement.runningBalance < 0
-                ? `${Math.round(Math.abs(movement.runningBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
-                : '-';
-
-          const dateStr = format(new Date(movement.created_at), 'dd/MM/yyyy');
-          const combinedAmount = getCombinedAmount(movement);
-
-          const incomingAmount =
-            movement.movement_type === 'incoming' ? Math.round(combinedAmount).toLocaleString('en-US') : '-';
-
-          const outgoingAmount =
-            movement.movement_type === 'outgoing' ? Math.round(combinedAmount).toLocaleString('en-US') : '-';
-
-          return `
-            <tr>
-              <td class="cell text-center">${dateStr}</td>
-              <td class="cell cell-notes">${movement.notes || movement.movement_number}</td>
-              <td class="cell text-center">${incomingAmount}</td>
-              <td class="cell text-center">${outgoingAmount}</td>
-              <td class="cell text-center">${balanceDisplay}</td>
-            </tr>
-          `;
-        })
-        .join('');
-
-      return `
-        <div class="currency-section">
-          <table>
-            <thead>
-              <tr class="currency-header-row">
-                <th colspan="5" class="currency-header">كشف حساب ${customerName} - ${currencyName}</th>
-              </tr>
-              <tr>
-                <th style="width: 12%;">التاريخ</th>
-                <th style="width: 38%;">البيان</th>
-                <th style="width: 15%;">له</th>
-                <th style="width: 15%;">عليه</th>
-                <th style="width: 20%;">الرصيد</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              ${movementRows}
-
-              <tr class="total-row keep-together">
-                <td colspan="2" class="cell text-center">المجموع</td>
-                <td class="cell text-center">${totalIncomingStr}</td>
-                <td class="cell text-center">${totalOutgoingStr}</td>
-                <td class="cell text-center">-</td>
-              </tr>
-
-              <tr class="final-row keep-together">
-                <td colspan="4" class="cell text-center"><strong>الرصيد النهائي</strong></td>
-                <td class="cell text-center"><strong>${finalBalanceDisplay}</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      `;
-    })
-    .join('');
-
   return `
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>كشف الحساب - ${customerName}</title>
-
   <style>
-    /* الهوامش القياسية للورق A4 - زيادة الهوامش العلوية والسفلية */
     @page {
-      size: A4 portrait;
-      margin: 25mm 20mm 25mm 20mm;
-      orphans: 4;
-      widows: 4;
+      margin: 1.5cm 1cm;
     }
 
     * {
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
     }
 
-    html, body {
-      margin: 0;
-      padding: 0;
+    body {
+      font-family: 'Arial', 'Tahoma', sans-serif;
       background: #fff;
       color: #000;
       direction: rtl;
-      font-family: 'Arial', 'Tahoma', sans-serif;
+      padding: 15px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
-    .print-container {
-      margin: 0;
-      padding: 0;
-    }
-
-    /* الترويسة - تظهر في الصفحة الأولى فقط */
     .header-wrapper {
-      margin-bottom: 8mm;
+      margin-bottom: 25px;
       page-break-inside: avoid;
-      break-inside: avoid;
+      page-break-after: avoid;
     }
 
     .currency-section {
-      margin-bottom: 0;
-    }
-
-    /* عنوان العملة داخل thead - يتكرر في كل صفحة */
-    .currency-header-row {
-      break-inside: avoid;
+      margin-bottom: 40px;
       page-break-inside: avoid;
     }
 
-    .currency-header {
-      background-color: #f9fafb !important;
-      font-size: 18px !important;
-      font-weight: bold;
-      padding: 16px 16px !important;
-      border: 2px solid #000 !important;
+    .section-title {
+      border: 2px solid #000;
+      padding: 12px 20px;
+      margin-bottom: 0;
       text-align: center;
-      color: #111827 !important;
+      background: #f9fafb;
     }
 
-    /* جدول واحد لكل عملة - يملأ الصفحات تلقائياً */
+    .section-title h2 {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 0;
+      color: #111827;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
       border: 2px solid #000;
       border-top: none;
       background: #fff;
-      margin: 0;
-      page-break-inside: auto;
-      break-inside: auto;
-    }
-
-    /* رأس الأعمدة - يتكرر في كل صفحة جديدة */
-    thead {
-      display: table-header-group;
-    }
-
-    tbody {
-      display: table-row-group;
     }
 
     th {
       background-color: #e5e7eb;
       font-weight: bold;
-      padding: 12px 8px;
+      padding: 10px 8px;
       border: 1px solid #000;
-      font-size: 13px;
+      font-size: 14px;
       text-align: center;
       color: #111827;
     }
 
     td {
-      padding: 10px 8px;
+      padding: 8px 6px;
       border: 1px solid #000;
       text-align: center;
-      font-size: 12px;
+      font-size: 13px;
       color: #374151;
       vertical-align: middle;
     }
 
+    .text-center {
+      text-align: center !important;
+    }
+
     .cell {
-      min-height: 35px;
+      min-height: 30px;
     }
 
-    .cell-notes {
-      text-align: right;
-      padding-right: 12px;
-      word-break: break-word;
-    }
-
-    /* منع تقسيم الصف الواحد بين صفحتين */
-    tr {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-
-    th, td {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-
-    /* إجبار صفوف الإجمالي والرصيد النهائي ألا تنقسم */
     .total-row {
       background-color: #f3f4f6;
       font-weight: bold;
-      font-size: 13px;
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-      break-before: avoid;
-      page-break-before: avoid;
-    }
-
-    .total-row td {
-      padding: 12px 8px !important;
+      font-size: 14px;
     }
 
     .final-row {
       background-color: #dbeafe;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 15px;
       color: #1e40af;
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-      break-before: avoid;
-      page-break-before: avoid;
-    }
-
-    .final-row td {
-      padding: 14px 8px !important;
-    }
-
-    /* منع وجود صف الإجمالي أو الرصيد النهائي بمفرده في صفحة جديدة */
-    .keep-together {
-      orphans: 3;
-      widows: 3;
     }
 
     .footer {
-      margin-top: 8mm;
+      margin-top: 30px;
       text-align: center;
       font-size: 11px;
       color: #6b7280;
       padding: 10px 0;
       border-top: 1px solid #e5e7eb;
-      page-break-inside: avoid;
-      break-inside: avoid;
     }
 
     ${generatePDFHeaderStyles()}
@@ -352,65 +295,59 @@ export function generateAccountStatementHTML(
         color-adjust: exact !important;
       }
 
-      @page {
-        size: A4 portrait;
-        margin: 25mm 20mm 25mm 20mm;
-        orphans: 4;
-        widows: 4;
-      }
-
       html, body {
-        margin: 0 !important;
-        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
-      .print-container {
-        margin: 0 !important;
-        padding: 0 !important;
+      @page {
+        margin: 1.5cm 1cm;
       }
 
-      thead {
-        display: table-header-group !important;
+      .header-wrapper {
+        page-break-inside: avoid;
+        page-break-after: avoid;
       }
 
-      tbody {
-        display: table-row-group !important;
+      .currency-section {
+        page-break-inside: avoid;
       }
 
-      /* إضافة مساحة إضافية بعد رأس الجدول في الصفحات الجديدة */
-      thead::after {
-        content: '';
-        display: block;
-        height: 3mm;
-      }
-
-      /* تحسين المساحة حول الجدول */
       table {
-        margin-top: 2mm !important;
+        page-break-inside: avoid;
       }
 
-      /* ضمان وجود مساحة كافية بين الصفوف */
-      tr {
-        orphans: 2 !important;
-        widows: 2 !important;
+      th {
+        background-color: #e5e7eb !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+
+      .total-row {
+        background-color: #f3f4f6 !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+
+      .final-row {
+        background-color: #dbeafe !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+
+      .section-title {
+        background: #f9fafb !important;
+        -webkit-print-color-adjust: exact !important;
       }
     }
   </style>
 </head>
-
 <body>
-  <div class="print-container">
-    <!-- الترويسة: تظهر في الصفحة الأولى فقط -->
-    <div class="header-wrapper">
-      ${headerHTML}
-    </div>
+  <div class="header-wrapper">
+    ${headerHTML}
+  </div>
 
-    <!-- الجداول: تملأ الصفحات تلقائياً -->
-    ${currencySections}
+  ${currencySections}
 
-    <div class="footer">
-      <div>تاريخ الطباعة: ${reportDate}</div>
-    </div>
+  <div class="footer">
+    <div>تاريخ الطباعة: ${reportDate}</div>
   </div>
 </body>
 </html>

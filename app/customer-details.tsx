@@ -25,8 +25,6 @@ import * as Sharing from 'expo-sharing';
 import { generateAccountStatementHTML } from '@/utils/accountStatementGenerator';
 import { getLogoBase64 } from '@/utils/logoHelper';
 import QuickAddMovementSheet from '@/components/QuickAddMovementSheet';
-import { useAuth } from '@/contexts/AuthContext';
-import { processAccountStatementTemplate, processShareAccountTemplate } from '@/utils/whatsappTemplateHelper';
 
 interface GroupedMovements {
   [key: string]: AccountMovement[];
@@ -172,7 +170,6 @@ export default function CustomerDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { lastRefreshTime } = useDataRefresh();
-  const { settings } = useAuth();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [movements, setMovements] = useState<AccountMovement[]>([]);
   const [totalIncoming, setTotalIncoming] = useState(0);
@@ -250,32 +247,29 @@ export default function CustomerDetailsScreen() {
     if (customer?.phone) {
       const cleanPhone = customer.phone.replace(/[^0-9]/g, '');
       const balances = calculateBalanceByCurrency(movements);
+      const currentDate = format(new Date(), 'EEEE، dd MMMM yyyy', {
+        locale: ar,
+      });
 
-      let balanceText = '';
+      let message = `مرحباً ${customer.name}،\n`;
+      message += `رقم الحساب: ${customer.account_number}\n`;
+      message += `التاريخ: ${currentDate}\n\n`;
+
       if (balances.length === 0) {
-        balanceText = 'رصيدك الحالي: متساوي';
+        message += `رصيدك الحالي: متساوي`;
       } else {
-        balanceText = 'رصيدك الحالي:\n';
+        message += `رصيدك الحالي:\n`;
         balances.forEach((currBalance) => {
           const symbol = getCurrencySymbol(currBalance.currency);
           if (currBalance.balance > 0) {
-            balanceText += `• لك عندنا ${Math.round(currBalance.balance)} ${symbol}\n`;
+            message += `• لك عندنا ${Math.round(currBalance.balance)} ${symbol}\n`;
           } else {
-            balanceText += `• لنا عندك ${Math.round(Math.abs(currBalance.balance))} ${symbol}\n`;
+            message += `• لنا عندك ${Math.round(Math.abs(currBalance.balance))} ${symbol}\n`;
           }
         });
       }
 
-      const message = processAccountStatementTemplate(
-        settings?.whatsapp_account_statement_template || undefined,
-        {
-          customerName: customer.name,
-          accountNumber: customer.account_number || '',
-          balance: balanceText,
-          shopName: settings?.shop_name || undefined,
-          shopPhone: settings?.shop_phone || undefined,
-        }
-      );
+      message += `\nشكراً`;
 
       const encodedMessage = encodeURIComponent(message);
       Linking.openURL(
@@ -499,28 +493,32 @@ export default function CustomerDetailsScreen() {
     if (!customer) return;
 
     const balances = calculateBalanceByCurrency(movements);
+    let accountText = `تقرير حساب العميل: ${customer.name}\n`;
+    accountText += `=====================================\n\n`;
 
-    let balancesText = '';
     if (balances.length === 0) {
-      balancesText = 'الحساب متساوي';
+      accountText += `الحالة: الحساب متساوي\n\n`;
     } else {
-      balancesText = balances.map((currBalance) => {
+      accountText += `الأرصدة:\n`;
+      balances.forEach((currBalance) => {
         const symbol = getCurrencySymbol(currBalance.currency);
         if (currBalance.balance > 0) {
-          return `${Math.round(currBalance.balance)} ${symbol} (لك)`;
+          accountText += `• للعميل عندنا: ${Math.round(currBalance.balance)} ${symbol}\n`;
         } else {
-          return `${Math.round(Math.abs(currBalance.balance))} ${symbol} (عليك)`;
+          accountText += `• لنا عند العميل: ${Math.round(Math.abs(currBalance.balance))} ${symbol}\n`;
         }
-      }).join('\n');
+      });
+      accountText += `\n`;
     }
 
-    let movementsText = '';
     if (movements.length > 0) {
-      const grouped = groupMovementsByMonth(movements);
-      const movementsList: string[] = [];
+      accountText += `تفاصيل الحركات:\n`;
+      accountText += `=====================================\n\n`;
 
+      const grouped = groupMovementsByMonth(movements);
       Object.entries(grouped).forEach(([monthYear, monthMovements]) => {
-        movementsList.push(`\n*${monthYear}*`);
+        accountText += `${monthYear}\n`;
+        accountText += `-------------------------------------\n`;
         monthMovements.forEach((movement) => {
           const date = format(new Date(movement.created_at), 'dd/MM/yyyy', {
             locale: ar,
@@ -530,32 +528,18 @@ export default function CustomerDetailsScreen() {
               ? 'عليه'
               : 'له';
           const symbol = getCurrencySymbol(movement.currency);
-          let movementLine = `• ${date} - ${type} ${movement.movement_number}\n  المبلغ: ${Math.round(Number(movement.amount))} ${symbol}`;
+          accountText += `${date} - ${type} ${movement.movement_number}\n`;
+          accountText += `المبلغ: ${Math.round(Number(movement.amount))} ${symbol}\n`;
           if (movement.notes) {
-            movementLine += `\n  الملاحظات: ${movement.notes}`;
+            accountText += `الملاحظات: ${movement.notes}\n`;
           }
-          movementsList.push(movementLine);
+          accountText += `\n`;
         });
+        accountText += `\n`;
       });
-
-      movementsText = movementsList.join('\n');
-    } else {
-      movementsText = 'لا توجد حركات';
     }
 
-    const reportDate = format(new Date(), 'EEEE، dd MMMM yyyy', { locale: ar });
-
-    const accountText = processShareAccountTemplate(
-      settings?.whatsapp_share_account_template,
-      {
-        customerName: customer.name,
-        date: reportDate,
-        balances: balancesText,
-        movements: movementsText,
-        shopName: settings?.shop_name,
-        shopPhone: settings?.shop_phone || undefined,
-      }
-    );
+    accountText += `\nتم إنشاء التقرير بتاريخ: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ar })}\n`;
 
     try {
       await Linking.openURL(

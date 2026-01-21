@@ -17,7 +17,6 @@ import {
   Settings as SettingsIcon,
   Building2,
   Users,
-  MessageCircle,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -52,13 +51,6 @@ export default function SettingsScreen() {
       subtitle: 'اسم المحل والشعار',
       color: '#4F46E5',
       onPress: () => router.push('/shop-settings' as any),
-    },
-    {
-      icon: MessageCircle,
-      title: 'قوالب رسائل الواتساب',
-      subtitle: 'تخصيص الرسائل المرسلة للعملاء',
-      color: '#25D366',
-      onPress: () => router.push('/whatsapp-templates' as any),
     },
     {
       icon: Users,
