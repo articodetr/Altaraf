@@ -760,7 +760,9 @@ export default function CustomerDetailsScreen() {
           >
             <ArrowRight size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{customer.name}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            {customer.name}
+          </Text>
           <TouchableOpacity
             style={styles.settingsButton}
             onPress={() => setShowSettingsMenu(true)}
@@ -1190,6 +1192,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
+    flexShrink: 0,
   },
   settingsButton: {
     width: 40,
@@ -1198,12 +1201,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
+    flexShrink: 0,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
+    marginHorizontal: 8,
   },
   headerInfo: {
     paddingHorizontal: 20,
