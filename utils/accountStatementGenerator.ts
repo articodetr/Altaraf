@@ -104,8 +104,8 @@ export function generateAccountStatementHTML(
     const finalBalance = totalIncoming - totalOutgoing;
     const currencyName = getCurrencyName(curr);
 
-    // Split movements into chunks of 18 rows per page
-    const ROWS_PER_PAGE = 18;
+    // Split movements into chunks of 15 rows per page to fit A4 with proper margins
+    const ROWS_PER_PAGE = 15;
     const movementChunks = chunkArray(movementsWithBalance, ROWS_PER_PAGE);
 
     // Generate table for each chunk
@@ -212,8 +212,8 @@ export function generateAccountStatementHTML(
   <title>كشف الحساب - ${customerName}</title>
   <style>
     @page {
-      size: A4;
-      margin: 0;
+      size: A4 portrait;
+      margin: 15mm 12mm 15mm 12mm;
     }
 
     * {
@@ -227,14 +227,14 @@ export function generateAccountStatementHTML(
       background: #fff;
       color: #000;
       direction: rtl;
-      padding: 15mm 10mm;
+      padding: 0;
       margin: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
     .print-container {
-      padding: 0;
+      padding: 6mm 0;
     }
 
     .header-wrapper {
@@ -283,6 +283,8 @@ export function generateAccountStatementHTML(
       margin-bottom: 15px;
       page-break-inside: auto;
       break-inside: auto;
+      page-break-before: auto;
+      break-before: auto;
     }
 
     table.page-break-after {
@@ -293,6 +295,8 @@ export function generateAccountStatementHTML(
 
     thead {
       display: table-header-group;
+      page-break-after: avoid;
+      break-after: avoid;
     }
 
     tbody {
@@ -325,11 +329,13 @@ export function generateAccountStatementHTML(
     tr {
       page-break-inside: avoid;
       break-inside: avoid;
+      -webkit-column-break-inside: avoid;
     }
 
     th, td {
       page-break-inside: avoid;
       break-inside: avoid;
+      -webkit-column-break-inside: avoid;
     }
 
     .text-center {
@@ -389,19 +395,19 @@ export function generateAccountStatementHTML(
       }
 
       body {
-        padding: 15mm 10mm !important;
+        padding: 0 !important;
         margin: 0 !important;
       }
 
       @page {
-        size: A4;
-        margin: 0 !important;
-        orphans: 2;
-        widows: 2;
+        size: A4 portrait;
+        margin: 15mm 12mm 15mm 12mm !important;
+        orphans: 3;
+        widows: 3;
       }
 
       .print-container {
-        padding: 0 !important;
+        padding: 6mm 0 !important;
       }
 
       .header-wrapper {
@@ -433,6 +439,8 @@ export function generateAccountStatementHTML(
         border-collapse: collapse;
         page-break-inside: auto;
         break-inside: auto;
+        page-break-before: auto;
+        break-before: auto;
         margin-bottom: 15px;
       }
 
@@ -444,12 +452,14 @@ export function generateAccountStatementHTML(
 
       thead {
         display: table-header-group !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
 
       tbody {
         display: table-row-group !important;
-        orphans: 2;
-        widows: 2;
+        orphans: 3;
+        widows: 3;
       }
 
       tfoot {
@@ -459,6 +469,7 @@ export function generateAccountStatementHTML(
       tr {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
         page-break-after: auto;
         break-after: auto;
       }
@@ -466,6 +477,7 @@ export function generateAccountStatementHTML(
       th, td {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
       }
 
       th {
