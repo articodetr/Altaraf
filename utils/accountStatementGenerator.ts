@@ -180,12 +180,12 @@ export function generateAccountStatementHTML(
   <title>كشف الحساب - ${customerName}</title>
 
   <style>
-    /* الهوامش القياسية للورق A4 */
+    /* الهوامش القياسية للورق A4 - زيادة الهوامش العلوية والسفلية */
     @page {
       size: A4 portrait;
-      margin: 15mm 20mm 15mm 20mm;
-      orphans: 3;
-      widows: 3;
+      margin: 25mm 20mm 25mm 20mm;
+      orphans: 4;
+      widows: 4;
     }
 
     * {
@@ -210,7 +210,7 @@ export function generateAccountStatementHTML(
 
     /* الترويسة - تظهر في الصفحة الأولى فقط */
     .header-wrapper {
-      margin-bottom: 5mm;
+      margin-bottom: 8mm;
       page-break-inside: avoid;
       break-inside: avoid;
     }
@@ -229,7 +229,7 @@ export function generateAccountStatementHTML(
       background-color: #f9fafb !important;
       font-size: 18px !important;
       font-weight: bold;
-      padding: 12px 16px !important;
+      padding: 16px 16px !important;
       border: 2px solid #000 !important;
       text-align: center;
       color: #111827 !important;
@@ -259,7 +259,7 @@ export function generateAccountStatementHTML(
     th {
       background-color: #e5e7eb;
       font-weight: bold;
-      padding: 8px 6px;
+      padding: 12px 8px;
       border: 1px solid #000;
       font-size: 13px;
       text-align: center;
@@ -267,7 +267,7 @@ export function generateAccountStatementHTML(
     }
 
     td {
-      padding: 7px 5px;
+      padding: 10px 8px;
       border: 1px solid #000;
       text-align: center;
       font-size: 12px;
@@ -276,12 +276,12 @@ export function generateAccountStatementHTML(
     }
 
     .cell {
-      min-height: 28px;
+      min-height: 35px;
     }
 
     .cell-notes {
       text-align: right;
-      padding-right: 10px;
+      padding-right: 12px;
       word-break: break-word;
     }
 
@@ -307,6 +307,10 @@ export function generateAccountStatementHTML(
       page-break-before: avoid;
     }
 
+    .total-row td {
+      padding: 12px 8px !important;
+    }
+
     .final-row {
       background-color: #dbeafe;
       font-weight: bold;
@@ -318,12 +322,22 @@ export function generateAccountStatementHTML(
       page-break-before: avoid;
     }
 
+    .final-row td {
+      padding: 14px 8px !important;
+    }
+
+    /* منع وجود صف الإجمالي أو الرصيد النهائي بمفرده في صفحة جديدة */
+    .keep-together {
+      orphans: 3;
+      widows: 3;
+    }
+
     .footer {
-      margin-top: 5mm;
+      margin-top: 8mm;
       text-align: center;
       font-size: 11px;
       color: #6b7280;
-      padding: 8px 0;
+      padding: 10px 0;
       border-top: 1px solid #e5e7eb;
       page-break-inside: avoid;
       break-inside: avoid;
@@ -340,9 +354,9 @@ export function generateAccountStatementHTML(
 
       @page {
         size: A4 portrait;
-        margin: 15mm 20mm 15mm 20mm;
-        orphans: 3;
-        widows: 3;
+        margin: 25mm 20mm 25mm 20mm;
+        orphans: 4;
+        widows: 4;
       }
 
       html, body {
@@ -361,6 +375,24 @@ export function generateAccountStatementHTML(
 
       tbody {
         display: table-row-group !important;
+      }
+
+      /* إضافة مساحة إضافية بعد رأس الجدول في الصفحات الجديدة */
+      thead::after {
+        content: '';
+        display: block;
+        height: 3mm;
+      }
+
+      /* تحسين المساحة حول الجدول */
+      table {
+        margin-top: 2mm !important;
+      }
+
+      /* ضمان وجود مساحة كافية بين الصفوف */
+      tr {
+        orphans: 2 !important;
+        widows: 2 !important;
       }
     }
   </style>
