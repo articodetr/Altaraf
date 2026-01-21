@@ -373,6 +373,10 @@ export default function CustomerDetailsScreen() {
     executePrint(filtered);
   };
 
+  const handlePrintAll = () => {
+    executePrint(movements);
+  };
+
   const handleSettleUp = () => {
     Alert.alert('تسوية الحساب', 'ميزة تسوية الحساب قيد التطوير');
   };
@@ -1154,6 +1158,7 @@ export default function CustomerDetailsScreen() {
         visible={showDateRangeModal}
         onClose={() => setShowDateRangeModal(false)}
         onConfirm={handleCalendarConfirm}
+        onPrintAll={handlePrintAll}
         initialStartDate={startDate}
         initialEndDate={endDate}
         maxDate={new Date()}

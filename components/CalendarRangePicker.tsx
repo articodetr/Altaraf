@@ -21,12 +21,13 @@ import {
   isAfter,
 } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { ChevronRight, ChevronLeft, X, Check } from 'lucide-react-native';
+import { ChevronRight, ChevronLeft, X, Check, FileText } from 'lucide-react-native';
 
 interface CalendarRangePickerProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: (startDate: Date, endDate: Date) => void;
+  onPrintAll: () => void;
   initialStartDate?: Date | null;
   initialEndDate?: Date | null;
   maxDate?: Date;
@@ -36,6 +37,7 @@ export default function CalendarRangePicker({
   visible,
   onClose,
   onConfirm,
+  onPrintAll,
   initialStartDate,
   initialEndDate,
   maxDate = new Date(),
@@ -244,11 +246,25 @@ export default function CalendarRangePicker({
           </ScrollView>
 
           <View style={styles.footer}>
+            {(startDate || endDate) && (
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={handleReset}
+              >
+                <X size={18} color="#6B7280" />
+                <Text style={styles.resetButtonText}>إعادة تعيين</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
-              style={styles.resetButton}
-              onPress={handleReset}
+              style={styles.printAllButton}
+              onPress={() => {
+                onPrintAll();
+                onClose();
+              }}
             >
-              <Text style={styles.resetButtonText}>إعادة تعيين</Text>
+              <FileText size={20} color="#FFFFFF" />
+              <Text style={styles.printAllButtonText}>طباعة الكل</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -260,7 +276,7 @@ export default function CalendarRangePicker({
               disabled={!startDate || !endDate}
             >
               <Check size={20} color="#FFFFFF" />
-              <Text style={styles.confirmButtonText}>تأكيد</Text>
+              <Text style={styles.confirmButtonText}>طباعة الفترة</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -418,25 +434,46 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     gap: 12,
   },
   resetButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
   },
   resetButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
   },
+  printAllButton: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minWidth: 140,
+  },
+  printAllButtonText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
   confirmButton: {
-    flex: 2,
+    flex: 1,
     flexDirection: 'row',
     paddingVertical: 14,
     borderRadius: 12,
@@ -444,12 +481,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    minWidth: 140,
   },
   confirmButtonDisabled: {
     backgroundColor: '#D1D5DB',
+    opacity: 0.6,
   },
   confirmButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
