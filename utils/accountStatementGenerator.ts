@@ -184,7 +184,7 @@ export function generateAccountStatementHTML(
   <title>كشف الحساب - ${customerName}</title>
   <style>
     @page {
-      margin: 2cm 1.5cm;
+      margin: 1.8cm 1.2cm 2.5cm 1.2cm;
     }
 
     * {
@@ -198,19 +198,23 @@ export function generateAccountStatementHTML(
       background: #fff;
       color: #000;
       direction: rtl;
-      padding: 15px;
+      padding: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
     .header-wrapper {
-      margin-bottom: 30px;
+      margin-bottom: 20px;
       page-break-inside: avoid;
       page-break-after: avoid;
     }
 
     .currency-section {
-      margin-bottom: 40px;
+      margin-bottom: 50px;
+    }
+
+    .currency-section:last-of-type {
+      margin-bottom: 30px;
     }
 
     .section-title {
@@ -236,6 +240,7 @@ export function generateAccountStatementHTML(
       border: 2px solid #000;
       border-top: none;
       background: #fff;
+      margin-bottom: 30px;
     }
 
     th {
@@ -300,27 +305,39 @@ export function generateAccountStatementHTML(
       html, body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        padding: 0 !important;
+        margin: 0 !important;
       }
 
       @page {
-        margin: 2cm 1.5cm;
+        margin: 1.8cm 1.2cm 2.5cm 1.2cm;
+        orphans: 3;
+        widows: 3;
       }
 
       .header-wrapper {
         page-break-inside: avoid;
         page-break-after: avoid;
+        margin-bottom: 20px;
       }
 
       .currency-section {
         page-break-inside: auto;
+        margin-bottom: 50px;
       }
 
       table {
         page-break-inside: auto;
+        margin-bottom: 30px;
       }
 
       thead {
         display: table-header-group;
+      }
+
+      tbody {
+        orphans: 3;
+        widows: 3;
       }
 
       tbody tr {
@@ -349,6 +366,11 @@ export function generateAccountStatementHTML(
         background: #f9fafb !important;
         -webkit-print-color-adjust: exact !important;
         page-break-after: avoid;
+        margin-bottom: 0 !important;
+      }
+
+      .footer {
+        margin-top: 40px !important;
       }
     }
   </style>
