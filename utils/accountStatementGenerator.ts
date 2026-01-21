@@ -139,6 +139,7 @@ export function generateAccountStatementHTML(
 
       return `
         <div class="currency-section ${sectionPageBreakClass}">
+          ${idx > 0 ? '<div class="page-top-space"></div>' : ''}
           <div class="section-title">
             <h2>كشف حساب ${customerName} - ${currencyName}</h2>
           </div>
@@ -187,7 +188,16 @@ export function generateAccountStatementHTML(
     /* هوامش ثابتة لكل صفحة (الأهم) */
     @page {
       size: A4 portrait;
-      margin: 15mm 12mm 15mm 12mm;
+      margin: 15mm 12mm 25mm 12mm;
+    }
+
+    /* مساحة في بداية كل صفحة جديدة */
+    @page :first {
+      margin-top: 15mm;
+    }
+
+    @page :left, @page :right {
+      margin-top: 25mm;
     }
 
     * { box-sizing: border-box; }
@@ -203,12 +213,14 @@ export function generateAccountStatementHTML(
       print-color-adjust: exact;
     }
 
-    /* لا تستخدم padding في body حتى لا تتصرف بشكل غير متوقع بين الصفحات */
-    body { padding: 0; }
+    body {
+      padding: 0;
+      padding-bottom: 35mm;
+    }
 
     /* مسافة بسيطة داخل الصفحة بدون تغيير مكان الترويسة */
     .print-container {
-      padding: 6mm 0;
+      padding: 10mm 0;
     }
 
     .header-wrapper {
@@ -323,6 +335,28 @@ export function generateAccountStatementHTML(
       break-inside: avoid;
     }
 
+    /* تاريخ ثابت في أسفل كل صفحة - يحاكي دفتر الحسابات */
+    .page-date-footer {
+      position: fixed;
+      bottom: 10mm;
+      left: 12mm;
+      right: 12mm;
+      text-align: center;
+      font-size: 12px;
+      color: #374151;
+      padding: 8px 0;
+      border-top: 1px solid #d1d5db;
+      background: #fff;
+      z-index: 1000;
+    }
+
+    /* مساحة فارغة في بداية كل صفحة جديدة */
+    .page-top-space {
+      height: 10mm;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
     ${generatePDFHeaderStyles()}
 
     @media print {
@@ -335,18 +369,41 @@ export function generateAccountStatementHTML(
       /* تأكيد الهوامش داخل الطباعة أيضًا */
       @page {
         size: A4 portrait;
-        margin: 15mm 12mm 15mm 12mm;
+        margin: 15mm 12mm 25mm 12mm;
         orphans: 3;
         widows: 3;
       }
 
-      .print-container { padding: 6mm 0 !important; }
+      @page :first {
+        margin-top: 15mm;
+      }
+
+      @page :left, @page :right {
+        margin-top: 25mm;
+      }
+
+      .print-container { padding: 10mm 0 !important; }
       thead { display: table-header-group !important; }
+
+      body {
+        padding-bottom: 35mm !important;
+      }
+
+      .page-date-footer {
+        position: fixed !important;
+        bottom: 10mm !important;
+        display: block !important;
+      }
     }
   </style>
 </head>
 
 <body>
+  <!-- تاريخ ثابت في أسفل كل صفحة -->
+  <div class="page-date-footer">
+    ${reportDate}
+  </div>
+
   <div class="print-container">
     <!-- الترويسة: تبقى كما هي في الصفحة الأولى -->
     <div class="header-wrapper">
