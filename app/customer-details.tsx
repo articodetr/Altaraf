@@ -717,8 +717,8 @@ export default function CustomerDetailsScreen() {
     });
 
   const groupedMovements = groupMovementsByMonth(filteredMovements);
-  const currencyBalances = calculateBalanceByCurrency(filteredMovements);
-  const currencyTotals = calculateCurrencyTotals(filteredMovements);
+  const currencyBalances = calculateBalanceByCurrency(movements);
+  const currencyTotals = calculateCurrencyTotals(movements);
 
   if (isLoading) {
     return (
