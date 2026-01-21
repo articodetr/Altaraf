@@ -15,6 +15,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDataRefresh } from '@/contexts/DataRefreshContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowRight, Phone, MessageCircle, Settings, Plus, Receipt, ChartBar as BarChart3, Calculator, FileText, ChevronDown, ChevronUp, Search, X, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { Customer, AccountMovement, CURRENCIES } from '@/types/database';
@@ -26,6 +27,13 @@ import { generateAccountStatementHTML } from '@/utils/accountStatementGenerator'
 import { getLogoBase64 } from '@/utils/logoHelper';
 import QuickAddMovementSheet from '@/components/QuickAddMovementSheet';
 import CalendarRangePicker from '@/components/CalendarRangePicker';
+import {
+  fetchWhatsAppTemplates,
+  replaceTemplateVariables,
+  formatBalancesForWhatsApp,
+  formatMovementsForWhatsApp,
+  getFormattedDate,
+} from '@/utils/whatsappTemplates';
 
 interface GroupedMovements {
   [key: string]: AccountMovement[];
@@ -171,6 +179,7 @@ export default function CustomerDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { lastRefreshTime } = useDataRefresh();
+  const { settings } = useAuth();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [movements, setMovements] = useState<AccountMovement[]>([]);
   const [totalIncoming, setTotalIncoming] = useState(0);
@@ -247,33 +256,28 @@ export default function CustomerDetailsScreen() {
     }
   };
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     if (customer?.phone) {
       const cleanPhone = customer.phone.replace(/[^0-9]/g, '');
       const balances = calculateBalanceByCurrency(movements);
-      const currentDate = format(new Date(), 'EEEE، dd MMMM yyyy', {
-        locale: ar,
+
+      const templates = await fetchWhatsAppTemplates();
+
+      const balanceText = balances.length === 0
+        ? 'الحساب متساوي'
+        : formatBalancesForWhatsApp(
+            balances.map(b => ({
+              currency: getCurrencySymbol(b.currency),
+              balance: b.balance
+            }))
+          );
+
+      const message = replaceTemplateVariables(templates.account_statement, {
+        customer_name: customer.name,
+        account_number: customer.account_number,
+        date: getFormattedDate(),
+        balance: balanceText,
       });
-
-      let message = `مرحباً ${customer.name}،\n`;
-      message += `رقم الحساب: ${customer.account_number}\n`;
-      message += `التاريخ: ${currentDate}\n\n`;
-
-      if (balances.length === 0) {
-        message += `رصيدك الحالي: متساوي`;
-      } else {
-        message += `رصيدك الحالي:\n`;
-        balances.forEach((currBalance) => {
-          const symbol = getCurrencySymbol(currBalance.currency);
-          if (currBalance.balance > 0) {
-            message += `• لك عندنا ${Math.round(currBalance.balance)} ${symbol}\n`;
-          } else {
-            message += `• لنا عندك ${Math.round(Math.abs(currBalance.balance))} ${symbol}\n`;
-          }
-        });
-      }
-
-      message += `\nشكراً`;
 
       const encodedMessage = encodeURIComponent(message);
       Linking.openURL(
@@ -527,61 +531,43 @@ export default function CustomerDetailsScreen() {
   const handleShareAccount = async () => {
     if (!customer) return;
 
+    const templates = await fetchWhatsAppTemplates();
     const balances = calculateBalanceByCurrency(movements);
-    let accountText = `تقرير حساب العميل: ${customer.name}\n`;
-    accountText += `=====================================\n\n`;
 
-    if (balances.length === 0) {
-      accountText += `الحالة: الحساب متساوي\n\n`;
-    } else {
-      accountText += `الأرصدة:\n`;
-      balances.forEach((currBalance) => {
-        const symbol = getCurrencySymbol(currBalance.currency);
-        if (currBalance.balance > 0) {
-          accountText += `• للعميل عندنا: ${Math.round(currBalance.balance)} ${symbol}\n`;
-        } else {
-          accountText += `• لنا عند العميل: ${Math.round(Math.abs(currBalance.balance))} ${symbol}\n`;
-        }
-      });
-      accountText += `\n`;
-    }
+    const balancesText = balances.length === 0
+      ? 'الحساب متساوي'
+      : formatBalancesForWhatsApp(
+          balances.map(b => ({
+            currency: getCurrencySymbol(b.currency),
+            balance: b.balance
+          }))
+        );
 
-    if (movements.length > 0) {
-      accountText += `تفاصيل الحركات:\n`;
-      accountText += `=====================================\n\n`;
+    const movementsFormatted = movements.map(m => ({
+      created_at: m.created_at,
+      movement_type: m.movement_type,
+      amount: Number(m.amount),
+      currency: getCurrencySymbol(m.currency),
+      notes: m.notes,
+    }));
 
-      const grouped = groupMovementsByMonth(movements);
-      Object.entries(grouped).forEach(([monthYear, monthMovements]) => {
-        accountText += `${monthYear}\n`;
-        accountText += `-------------------------------------\n`;
-        monthMovements.forEach((movement) => {
-          const date = format(new Date(movement.created_at), 'dd/MM/yyyy', {
-            locale: ar,
-          });
-          const type =
-            movement.movement_type === 'outgoing'
-              ? 'عليه'
-              : 'له';
-          const symbol = getCurrencySymbol(movement.currency);
-          accountText += `${date} - ${type} ${movement.movement_number}\n`;
-          accountText += `المبلغ: ${Math.round(Number(movement.amount))} ${symbol}\n`;
-          if (movement.notes) {
-            accountText += `الملاحظات: ${movement.notes}\n`;
-          }
-          accountText += `\n`;
-        });
-        accountText += `\n`;
-      });
-    }
+    const movementsText = formatMovementsForWhatsApp(movementsFormatted);
 
-    accountText += `\nتم إنشاء التقرير بتاريخ: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ar })}\n`;
+    const message = replaceTemplateVariables(templates.share_account, {
+      customer_name: customer.name,
+      account_number: customer.account_number,
+      date: getFormattedDate(),
+      balances: balancesText,
+      movements: movementsText,
+      shop_name: settings?.shop_name || 'محل الصرافة',
+    });
 
     try {
       await Linking.openURL(
-        `whatsapp://send?text=${encodeURIComponent(accountText)}`,
+        `whatsapp://send?text=${encodeURIComponent(message)}`,
       );
     } catch (error) {
-      Alert.alert('مشاركة الحساب', accountText, [
+      Alert.alert('مشاركة الحساب', message, [
         { text: 'إغلاق', style: 'cancel' },
       ]);
     }

@@ -17,6 +17,7 @@ import {
   Settings as SettingsIcon,
   Building2,
   Users,
+  MessageCircle,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -58,6 +59,13 @@ export default function SettingsScreen() {
       subtitle: 'إضافة وتعديل وحذف المستخدمين',
       color: '#8B5CF6',
       onPress: () => router.push('/users-management' as any),
+    },
+    {
+      icon: MessageCircle,
+      title: 'قوالب رسائل الواتساب',
+      subtitle: 'تخصيص قوالب الرسائل المرسلة',
+      color: '#25D366',
+      onPress: () => router.push('/whatsapp-templates' as any),
     },
     {
       icon: Lock,
