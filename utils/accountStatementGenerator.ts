@@ -184,7 +184,8 @@ export function generateAccountStatementHTML(
   <title>كشف الحساب - ${customerName}</title>
   <style>
     @page {
-      margin: 1.8cm 1.2cm 2.5cm 1.2cm;
+      size: A4;
+      margin: 15mm 10mm 15mm 10mm;
     }
 
     * {
@@ -199,18 +200,27 @@ export function generateAccountStatementHTML(
       color: #000;
       direction: rtl;
       padding: 0;
+      margin: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+    }
+
+    .print-container {
+      padding: 8mm 0;
     }
 
     .header-wrapper {
       margin-bottom: 20px;
       page-break-inside: avoid;
+      break-inside: avoid;
       page-break-after: avoid;
+      break-after: avoid;
     }
 
     .currency-section {
       margin-bottom: 50px;
+      page-break-inside: auto;
+      break-inside: auto;
     }
 
     .currency-section:last-of-type {
@@ -224,7 +234,9 @@ export function generateAccountStatementHTML(
       text-align: center;
       background: #f9fafb;
       page-break-inside: avoid;
+      break-inside: avoid;
       page-break-after: avoid;
+      break-after: avoid;
     }
 
     .section-title h2 {
@@ -241,6 +253,20 @@ export function generateAccountStatementHTML(
       border-top: none;
       background: #fff;
       margin-bottom: 30px;
+      page-break-inside: auto;
+      break-inside: auto;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tbody {
+      display: table-row-group;
+    }
+
+    tfoot {
+      display: table-footer-group;
     }
 
     th {
@@ -262,6 +288,16 @@ export function generateAccountStatementHTML(
       vertical-align: middle;
     }
 
+    tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    th, td {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
     .text-center {
       text-align: center !important;
     }
@@ -274,6 +310,10 @@ export function generateAccountStatementHTML(
       background-color: #f3f4f6;
       font-weight: bold;
       font-size: 14px;
+      page-break-before: avoid;
+      break-before: avoid;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .final-row {
@@ -281,6 +321,10 @@ export function generateAccountStatementHTML(
       font-weight: bold;
       font-size: 15px;
       color: #1e40af;
+      page-break-before: avoid;
+      break-before: avoid;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .footer {
@@ -291,6 +335,7 @@ export function generateAccountStatementHTML(
       padding: 10px 0;
       border-top: 1px solid #e5e7eb;
       page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     ${generatePDFHeaderStyles()}
@@ -307,54 +352,78 @@ export function generateAccountStatementHTML(
         print-color-adjust: exact !important;
         padding: 0 !important;
         margin: 0 !important;
+        width: 100%;
+        height: 100%;
       }
 
       @page {
-        margin: 1.8cm 1.2cm 2.5cm 1.2cm;
+        size: A4;
+        margin: 15mm 10mm 15mm 10mm;
         orphans: 3;
         widows: 3;
       }
 
+      .print-container {
+        padding-top: 8mm;
+        padding-bottom: 8mm;
+      }
+
       .header-wrapper {
-        page-break-inside: avoid;
-        page-break-after: avoid;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
         margin-bottom: 20px;
       }
 
       .currency-section {
         page-break-inside: auto;
+        break-inside: auto;
         margin-bottom: 50px;
       }
 
+      .section-title {
+        background: #f9fafb !important;
+        -webkit-print-color-adjust: exact !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin-bottom: 0 !important;
+      }
+
       table {
+        width: 100%;
+        border-collapse: collapse;
         page-break-inside: auto;
+        break-inside: auto;
         margin-bottom: 30px;
       }
 
       thead {
-        display: table-header-group;
+        display: table-header-group !important;
       }
 
       tbody {
+        display: table-row-group !important;
         orphans: 3;
         widows: 3;
       }
 
-      tbody tr {
-        page-break-inside: avoid;
+      tfoot {
+        display: table-footer-group !important;
+      }
+
+      tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
         page-break-after: auto;
+        break-after: auto;
       }
 
-      .total-row {
-        page-break-before: avoid;
-        background-color: #f3f4f6 !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-
-      .final-row {
-        page-break-before: avoid;
-        background-color: #dbeafe !important;
-        -webkit-print-color-adjust: exact !important;
+      th, td {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
 
       th {
@@ -362,28 +431,43 @@ export function generateAccountStatementHTML(
         -webkit-print-color-adjust: exact !important;
       }
 
-      .section-title {
-        background: #f9fafb !important;
+      .total-row {
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        background-color: #f3f4f6 !important;
         -webkit-print-color-adjust: exact !important;
-        page-break-after: avoid;
-        margin-bottom: 0 !important;
+      }
+
+      .final-row {
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        background-color: #dbeafe !important;
+        -webkit-print-color-adjust: exact !important;
       }
 
       .footer {
         margin-top: 40px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
   </style>
 </head>
 <body>
-  <div class="header-wrapper">
-    ${headerHTML}
-  </div>
+  <div class="print-container">
+    <div class="header-wrapper">
+      ${headerHTML}
+    </div>
 
-  ${currencySections}
+    ${currencySections}
 
-  <div class="footer">
-    <div>تاريخ الطباعة: ${reportDate}</div>
+    <div class="footer">
+      <div>تاريخ الطباعة: ${reportDate}</div>
+    </div>
   </div>
 </body>
 </html>
