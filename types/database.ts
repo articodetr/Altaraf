@@ -64,6 +64,7 @@ export interface AppSettings {
   shop_address?: string | null;
   selected_receipt_logo?: string | null;
   whatsapp_account_statement_template?: string | null;
+  whatsapp_share_account_template?: string | null;
   whatsapp_transaction_template?: string | null;
   pin_code: string;
   updated_at: string;

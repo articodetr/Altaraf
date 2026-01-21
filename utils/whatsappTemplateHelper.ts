@@ -20,6 +20,15 @@ export interface TransactionTemplateData {
   shopPhone?: string;
 }
 
+export interface ShareAccountTemplateData {
+  customerName: string;
+  date: string;
+  balances: string;
+  movements: string;
+  shopName?: string;
+  shopPhone?: string;
+}
+
 export const DEFAULT_ACCOUNT_STATEMENT_TEMPLATE = `مرحباً {customer_name}،
 رقم الحساب: {account_number}
 التاريخ: {date}
@@ -35,6 +44,28 @@ export const DEFAULT_TRANSACTION_TEMPLATE = `مرحباً {customer_name}،
 
 شكراً لثقتكم بنا
 {shop_name}`;
+
+export const DEFAULT_SHARE_ACCOUNT_TEMPLATE = `📊 *كشف حساب مفصل*
+━━━━━━━━━━━━━━━━━━━━
+
+👤 *العميل:* {customer_name}
+📅 *التاريخ:* {date}
+
+━━━━━━━━━━━━━━━━━━━━
+
+💰 *الأرصدة:*
+{balances}
+
+━━━━━━━━━━━━━━━━━━━━
+
+📝 *الحركات المالية:*
+{movements}
+
+━━━━━━━━━━━━━━━━━━━━
+
+شكراً لثقتكم بنا 🙏
+{shop_name}
+📞 {shop_phone}`;
 
 export function processAccountStatementTemplate(
   template: string | null | undefined,
@@ -95,6 +126,30 @@ export function processTransactionTemplate(
   return message;
 }
 
+export function processShareAccountTemplate(
+  template: string | null | undefined,
+  data: ShareAccountTemplateData
+): string {
+  const templateToUse = template || DEFAULT_SHARE_ACCOUNT_TEMPLATE;
+
+  let message = templateToUse;
+
+  message = message.replace(/{customer_name}/g, data.customerName);
+  message = message.replace(/{date}/g, data.date);
+  message = message.replace(/{balances}/g, data.balances);
+  message = message.replace(/{movements}/g, data.movements);
+
+  if (data.shopName) {
+    message = message.replace(/{shop_name}/g, data.shopName);
+  }
+
+  if (data.shopPhone) {
+    message = message.replace(/{shop_phone}/g, data.shopPhone);
+  }
+
+  return message;
+}
+
 export const AVAILABLE_VARIABLES = {
   accountStatement: [
     { variable: '{customer_name}', description: 'اسم العميل' },
@@ -112,6 +167,14 @@ export const AVAILABLE_VARIABLES = {
     { variable: '{currency_sent}', description: 'عملة الإرسال' },
     { variable: '{currency_received}', description: 'عملة الاستلام' },
     { variable: '{date}', description: 'التاريخ الحالي' },
+    { variable: '{shop_name}', description: 'اسم المحل' },
+    { variable: '{shop_phone}', description: 'رقم هاتف المحل' },
+  ],
+  shareAccount: [
+    { variable: '{customer_name}', description: 'اسم العميل' },
+    { variable: '{date}', description: 'تاريخ إنشاء التقرير' },
+    { variable: '{balances}', description: 'الأرصدة المفصلة بالعملات' },
+    { variable: '{movements}', description: 'قائمة الحركات المالية' },
     { variable: '{shop_name}', description: 'اسم المحل' },
     { variable: '{shop_phone}', description: 'رقم هاتف المحل' },
   ],

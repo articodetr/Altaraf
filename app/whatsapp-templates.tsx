@@ -16,9 +16,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   DEFAULT_ACCOUNT_STATEMENT_TEMPLATE,
   DEFAULT_TRANSACTION_TEMPLATE,
+  DEFAULT_SHARE_ACCOUNT_TEMPLATE,
   AVAILABLE_VARIABLES,
   processAccountStatementTemplate,
   processTransactionTemplate,
+  processShareAccountTemplate,
 } from '@/utils/whatsappTemplateHelper';
 
 export default function WhatsAppTemplatesScreen() {
@@ -28,9 +30,11 @@ export default function WhatsAppTemplatesScreen() {
   const [saving, setSaving] = useState(false);
 
   const [accountStatementTemplate, setAccountStatementTemplate] = useState('');
+  const [shareAccountTemplate, setShareAccountTemplate] = useState('');
   const [transactionTemplate, setTransactionTemplate] = useState('');
 
   const [showAccountPreview, setShowAccountPreview] = useState(false);
+  const [showShareAccountPreview, setShowShareAccountPreview] = useState(false);
   const [showTransactionPreview, setShowTransactionPreview] = useState(false);
 
   useEffect(() => {
@@ -42,6 +46,9 @@ export default function WhatsAppTemplatesScreen() {
       setAccountStatementTemplate(
         settings.whatsapp_account_statement_template || DEFAULT_ACCOUNT_STATEMENT_TEMPLATE
       );
+      setShareAccountTemplate(
+        settings.whatsapp_share_account_template || DEFAULT_SHARE_ACCOUNT_TEMPLATE
+      );
       setTransactionTemplate(
         settings.whatsapp_transaction_template || DEFAULT_TRANSACTION_TEMPLATE
       );
@@ -49,7 +56,7 @@ export default function WhatsAppTemplatesScreen() {
   };
 
   const handleSave = async () => {
-    if (!accountStatementTemplate.trim() || !transactionTemplate.trim()) {
+    if (!accountStatementTemplate.trim() || !shareAccountTemplate.trim() || !transactionTemplate.trim()) {
       Alert.alert('تنبيه', 'لا يمكن ترك القوالب فارغة');
       return;
     }
@@ -61,6 +68,7 @@ export default function WhatsAppTemplatesScreen() {
         .from('app_settings')
         .update({
           whatsapp_account_statement_template: accountStatementTemplate,
+          whatsapp_share_account_template: shareAccountTemplate,
           whatsapp_transaction_template: transactionTemplate,
         })
         .eq('id', settings?.id);
@@ -88,6 +96,7 @@ export default function WhatsAppTemplatesScreen() {
           style: 'destructive',
           onPress: () => {
             setAccountStatementTemplate(DEFAULT_ACCOUNT_STATEMENT_TEMPLATE);
+            setShareAccountTemplate(DEFAULT_SHARE_ACCOUNT_TEMPLATE);
             setTransactionTemplate(DEFAULT_TRANSACTION_TEMPLATE);
           },
         },
@@ -100,6 +109,17 @@ export default function WhatsAppTemplatesScreen() {
       customerName: 'محمد أحمد',
       accountNumber: 'ACC-001',
       balance: 'رصيدك الحالي:\n1,500.00 $ (لك)\n200,000 ريال (عليك)',
+      shopName: settings?.shop_name || 'محل الحوالات المالية',
+      shopPhone: settings?.shop_phone || '777123456',
+    });
+  };
+
+  const getShareAccountPreview = () => {
+    return processShareAccountTemplate(shareAccountTemplate, {
+      customerName: 'محمد أحمد',
+      date: 'الأحد، 21 يناير 2026',
+      balances: '1,500.00 $ (لك)\n200,000 ريال (عليك)',
+      movements: '1. حركة واردة - 1,000.00 $\n   التاريخ: 15/01/2026\n\n2. حركة صادرة - 500.00 $\n   التاريخ: 18/01/2026',
       shopName: settings?.shop_name || 'محل الحوالات المالية',
       shopPhone: settings?.shop_phone || '777123456',
     });
@@ -178,6 +198,52 @@ export default function WhatsAppTemplatesScreen() {
             <View style={styles.previewCard}>
               <Text style={styles.previewLabel}>معاينة:</Text>
               <Text style={styles.previewText}>{getAccountPreview()}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>قالب مشاركة الحساب المفصل</Text>
+          <Text style={styles.sectionDescription}>
+            الرسالة التي يتم إرسالها عند الضغط على زر "مشاركة الحساب" من صفحة تفاصيل العميل
+          </Text>
+
+          <View style={styles.templateCard}>
+            <TextInput
+              style={styles.templateInput}
+              value={shareAccountTemplate}
+              onChangeText={setShareAccountTemplate}
+              multiline
+              placeholder="أدخل قالب الرسالة..."
+              placeholderTextColor="#9CA3AF"
+              textAlignVertical="top"
+            />
+          </View>
+
+          <View style={styles.variablesCard}>
+            <Text style={styles.variablesTitle}>المتغيرات المتاحة:</Text>
+            {AVAILABLE_VARIABLES.shareAccount.map((item, index) => (
+              <View key={index} style={styles.variableItem}>
+                <Text style={styles.variableCode}>{item.variable}</Text>
+                <Text style={styles.variableDescription}>{item.description}</Text>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.previewButton}
+            onPress={() => setShowShareAccountPreview(!showShareAccountPreview)}
+          >
+            <Eye size={18} color="#3B82F6" />
+            <Text style={styles.previewButtonText}>
+              {showShareAccountPreview ? 'إخفاء المعاينة' : 'معاينة الرسالة'}
+            </Text>
+          </TouchableOpacity>
+
+          {showShareAccountPreview && (
+            <View style={styles.previewCard}>
+              <Text style={styles.previewLabel}>معاينة:</Text>
+              <Text style={styles.previewText}>{getShareAccountPreview()}</Text>
             </View>
           )}
         </View>
