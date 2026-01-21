@@ -8,9 +8,6 @@ import {
   TextInput,
   RefreshControl,
   Alert,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -21,9 +18,6 @@ import {
   Filter,
   TrendingUp,
   TrendingDown,
-  Calendar,
-  X,
-  FileText,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { CustomerBalanceByCurrency, CURRENCIES, Currency } from '@/types/database';
@@ -31,7 +25,6 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { generatePDFHeaderHTML, generatePDFHeaderStyles } from '@/utils/pdfHeaderGenerator';
 import { getLogoBase64 } from '@/utils/logoHelper';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 type SortType = 'name' | 'balance' | 'currency';
 type FilterCurrency = 'all' | Currency;
@@ -53,11 +46,6 @@ export default function DebtSummaryScreen() {
   const [sortBy, setSortBy] = useState<SortType>('name');
   const [filterCurrency, setFilterCurrency] = useState<FilterCurrency>('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [showDateModal, setShowDateModal] = useState(false);
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -101,76 +89,6 @@ export default function DebtSummaryScreen() {
     }
   };
 
-  const loadDataWithDateRange = async (start: Date, end: Date): Promise<CustomerDebtSummary[]> => {
-    try {
-      const startDateStr = start.toISOString().split('T')[0];
-      const endDateStr = end.toISOString().split('T')[0];
-
-      const { data: movements, error } = await supabase
-        .from('account_movements')
-        .select('*')
-        .gte('created_at', startDateStr)
-        .lte('created_at', endDateStr + 'T23:59:59')
-        .order('created_at');
-
-      if (error || !movements) {
-        console.error('Error loading movements:', error);
-        return [];
-      }
-
-      const grouped = new Map<string, CustomerDebtSummary>();
-
-      for (const movement of movements) {
-        const customerId = movement.customer_id;
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('name')
-          .eq('id', customerId)
-          .single();
-
-        if (!customer) continue;
-
-        if (!grouped.has(customerId)) {
-          grouped.set(customerId, {
-            customerId,
-            customerName: customer.name,
-            balances: [],
-            totalBalanceUSD: 0,
-          });
-        }
-
-        const customerData = grouped.get(customerId)!;
-        const amount = Number(movement.amount);
-        const currency = movement.currency;
-
-        let balanceEntry = customerData.balances.find((b) => b.currency === currency);
-        if (!balanceEntry) {
-          balanceEntry = {
-            customer_id: customerId,
-            customer_name: customer.name,
-            currency,
-            balance: 0,
-            total_incoming: 0,
-            total_outgoing: 0,
-          };
-          customerData.balances.push(balanceEntry);
-        }
-
-        if (movement.direction === 'incoming') {
-          balanceEntry.balance -= amount;
-          balanceEntry.total_incoming += amount;
-        } else {
-          balanceEntry.balance += amount;
-          balanceEntry.total_outgoing += amount;
-        }
-      }
-
-      return Array.from(grouped.values());
-    } catch (error) {
-      console.error('Error loading data with date range:', error);
-      return [];
-    }
-  };
 
   const applyFiltersAndSort = () => {
     let result = [...data];
@@ -219,39 +137,6 @@ export default function DebtSummaryScreen() {
     return currency?.name || code;
   };
 
-  const formatDate = (date: Date | null) => {
-    if (!date) return 'اختر التاريخ';
-    return date.toLocaleDateString('ar-EG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const handleStartDateChange = (event: any, selectedDate?: Date) => {
-    setShowStartDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setStartDate(selectedDate);
-    }
-  };
-
-  const handleEndDateChange = (event: any, selectedDate?: Date) => {
-    setShowEndDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setEndDate(selectedDate);
-    }
-  };
-
-  const handleWebDateChange = (dateString: string, isStartDate: boolean) => {
-    if (dateString) {
-      const date = new Date(dateString);
-      if (isStartDate) {
-        setStartDate(date);
-      } else {
-        setEndDate(date);
-      }
-    }
-  };
 
   const getTotalStats = () => {
     const owedByCurrency: { [key: string]: number } = {};
@@ -273,18 +158,8 @@ export default function DebtSummaryScreen() {
     return { owedByCurrency, owingByCurrency };
   };
 
-  const generatePDF = async (isCustomRange: boolean = false) => {
+  const generatePDF = async () => {
     try {
-      if (isCustomRange && (!startDate || !endDate)) {
-        Alert.alert('تنبيه', 'يرجى تحديد تاريخ البداية والنهاية');
-        return;
-      }
-
-      let dataToUse = filteredData;
-      if (isCustomRange && startDate && endDate) {
-        dataToUse = await loadDataWithDateRange(startDate, endDate);
-      }
-
       let logoDataUrl: string | undefined;
       try {
         logoDataUrl = await getLogoBase64();
@@ -293,9 +168,7 @@ export default function DebtSummaryScreen() {
         console.warn('[DebtSummary] Could not load logo, continuing without it:', logoError);
       }
 
-      const reportTitle = isCustomRange
-        ? `تقرير - حركة الحسابات (${formatDate(startDate)} - ${formatDate(endDate)})`
-        : 'تقرير - حركة الحسابات (كامل)';
+      const reportTitle = 'تقرير شامل - كشف حساب جميع العملاء';
 
       const headerHTML = generatePDFHeaderHTML({
         title: reportTitle,
@@ -306,7 +179,7 @@ export default function DebtSummaryScreen() {
         showPhones: true,
       });
 
-      const tableRows = dataToUse
+      const tableRows = data
         .flatMap((customer) =>
           customer.balances.map((balance) => {
             const amount = Number(balance.balance);
@@ -320,8 +193,8 @@ export default function DebtSummaryScreen() {
               <tr>
                 <td style="padding: 8px; border: 1px solid #000; text-align: right;">${customer.customerName}</td>
                 <td style="padding: 8px; border: 1px solid #000; text-align: center;">${getCurrencyName(balance.currency)}</td>
-                <td style="padding: 8px; border: 1px solid #000; text-align: center;">${owedToMe > 0 ? owedToMe.toFixed(2) : ''}</td>
-                <td style="padding: 8px; border: 1px solid #000; text-align: center;">${owedByMe > 0 ? owedByMe.toFixed(2) : ''}</td>
+                <td style="padding: 8px; border: 1px solid #000; text-align: center;">${totalIncoming > 0 ? totalIncoming.toFixed(2) : ''}</td>
+                <td style="padding: 8px; border: 1px solid #000; text-align: center;">${totalOutgoing > 0 ? totalOutgoing.toFixed(2) : ''}</td>
                 <td style="padding: 8px; border: 1px solid #000; text-align: center;">${owedToMe > 0 ? owedToMe.toFixed(2) : ''}</td>
                 <td style="padding: 8px; border: 1px solid #000; text-align: center;">${owedByMe > 0 ? owedByMe.toFixed(2) : ''}</td>
               </tr>
@@ -381,12 +254,12 @@ export default function DebtSummaryScreen() {
                 <tr>
                   <th rowspan="2">الحساب</th>
                   <th rowspan="2">العملة</th>
-                  <th colspan="2">حركة الفترة</th>
+                  <th colspan="2">إجمالي الحركات</th>
                   <th colspan="2">صافي الرصيد</th>
                 </tr>
                 <tr>
-                  <th>له</th>
-                  <th>عليه</th>
+                  <th>وارد</th>
+                  <th>صادر</th>
                   <th>له</th>
                   <th>عليه</th>
                 </tr>
@@ -488,7 +361,7 @@ export default function DebtSummaryScreen() {
           <ArrowRight size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>تقرير الديون الشامل</Text>
-        <TouchableOpacity style={styles.exportButton} onPress={() => setShowDateModal(true)}>
+        <TouchableOpacity style={styles.exportButton} onPress={generatePDF}>
           <Download size={20} color="#4F46E5" />
         </TouchableOpacity>
       </View>
@@ -642,150 +515,6 @@ export default function DebtSummaryScreen() {
           </View>
         )}
       </ScrollView>
-
-      <Modal
-        visible={showDateModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowDateModal(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowDateModal(false)}>
-                <X size={24} color="#111827" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>خيارات الطباعة</Text>
-              <View style={{ width: 24 }} />
-            </View>
-
-            <ScrollView
-              style={styles.modalBody}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.modalBodyContent}
-            >
-              <View style={styles.dateSection}>
-                <Text style={styles.sectionTitle}>تحديد الفترة الزمنية</Text>
-
-                <View style={styles.dateInputContainer}>
-                  <Text style={styles.dateLabel}>من تاريخ:</Text>
-                  {Platform.OS === 'web' ? (
-                    <View style={styles.dateButton}>
-                      <Calendar size={20} color="#4F46E5" />
-                      <input
-                        type="date"
-                        value={startDate ? startDate.toISOString().split('T')[0] : ''}
-                        onChange={(e) => handleWebDateChange(e.target.value, true)}
-                        max={new Date().toISOString().split('T')[0]}
-                        style={{
-                          flex: 1,
-                          border: 'none',
-                          backgroundColor: 'transparent',
-                          fontSize: '14px',
-                          textAlign: 'right',
-                          outline: 'none',
-                          color: '#111827',
-                          fontFamily: 'inherit',
-                        }}
-                      />
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.dateButton}
-                      onPress={() => setShowStartDatePicker(true)}
-                    >
-                      <Calendar size={20} color="#4F46E5" />
-                      <Text style={styles.dateButtonText}>{formatDate(startDate)}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <View style={styles.dateInputContainer}>
-                  <Text style={styles.dateLabel}>إلى تاريخ:</Text>
-                  {Platform.OS === 'web' ? (
-                    <View style={styles.dateButton}>
-                      <Calendar size={20} color="#4F46E5" />
-                      <input
-                        type="date"
-                        value={endDate ? endDate.toISOString().split('T')[0] : ''}
-                        onChange={(e) => handleWebDateChange(e.target.value, false)}
-                        max={new Date().toISOString().split('T')[0]}
-                        style={{
-                          flex: 1,
-                          border: 'none',
-                          backgroundColor: 'transparent',
-                          fontSize: '14px',
-                          textAlign: 'right',
-                          outline: 'none',
-                          color: '#111827',
-                          fontFamily: 'inherit',
-                        }}
-                      />
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.dateButton}
-                      onPress={() => setShowEndDatePicker(true)}
-                    >
-                      <Calendar size={20} color="#4F46E5" />
-                      <Text style={styles.dateButtonText}>{formatDate(endDate)}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {Platform.OS !== 'web' && showStartDatePicker && (
-                  <DateTimePicker
-                    value={startDate || new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handleStartDateChange}
-                    locale="ar-EG"
-                    maximumDate={new Date()}
-                  />
-                )}
-
-                {Platform.OS !== 'web' && showEndDatePicker && (
-                  <DateTimePicker
-                    value={endDate || new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handleEndDateChange}
-                    locale="ar-EG"
-                    maximumDate={new Date()}
-                  />
-                )}
-              </View>
-
-              <View style={styles.actionsSection}>
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={() => {
-                    setShowDateModal(false);
-                    generatePDF(true);
-                  }}
-                >
-                  <Calendar size={20} color="#FFFFFF" />
-                  <Text style={styles.primaryButtonText}>طباعة الفترة المحددة</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => {
-                    setShowDateModal(false);
-                    generatePDF(false);
-                  }}
-                >
-                  <FileText size={20} color="#4F46E5" />
-                  <Text style={styles.secondaryButtonText}>طباعة التقرير كامل</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
@@ -1089,114 +818,5 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#9CA3AF',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  modalBody: {
-    flex: 1,
-  },
-  modalBodyContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  dateSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 16,
-    textAlign: 'right',
-  },
-  dateInputContainer: {
-    marginBottom: 16,
-  },
-  dateLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 8,
-    textAlign: 'right',
-  },
-  dateButton: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  dateButtonText: {
-    fontSize: 14,
-    color: '#111827',
-    flex: 1,
-    textAlign: 'right',
-  },
-  actionsSection: {
-    gap: 12,
-  },
-  primaryButton: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  secondaryButton: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#4F46E5',
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4F46E5',
   },
 });
