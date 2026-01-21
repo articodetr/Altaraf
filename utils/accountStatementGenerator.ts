@@ -64,6 +64,15 @@ export function generateAccountStatementHTML(
 
   const reportDate = format(new Date(), 'EEEE، dd MMMM yyyy', { locale: ar });
 
+  // Function to split array into chunks
+  const chunkArray = <T,>(array: T[], size: number): T[][] => {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  };
+
   // Generate sections for each currency
   const currencySections = Object.entries(groupedByCurrency).map(([curr, currMovements]) => {
     const movementsWithBalance: MovementWithBalance[] = [];
@@ -95,8 +104,15 @@ export function generateAccountStatementHTML(
     const finalBalance = totalIncoming - totalOutgoing;
     const currencyName = getCurrencyName(curr);
 
-    const movementRows = movementsWithBalance
-      .map((movement) => {
+    // Split movements into chunks of 18 rows per page
+    const ROWS_PER_PAGE = 18;
+    const movementChunks = chunkArray(movementsWithBalance, ROWS_PER_PAGE);
+
+    // Generate table for each chunk
+    const tableChunks = movementChunks.map((chunk, chunkIndex) => {
+      const isLastChunk = chunkIndex === movementChunks.length - 1;
+
+      const movementRows = chunk.map((movement) => {
         const balanceDisplay = movement.runningBalance > 0
           ? `${Math.round(movement.runningBalance).toLocaleString('en-US')} ${currencyName} (له)`
           : movement.runningBalance < 0
@@ -121,24 +137,36 @@ export function generateAccountStatementHTML(
           <td class="cell text-center">${balanceDisplay}</td>
         </tr>
         `;
-      })
-      .join('');
+      }).join('');
 
-    const finalBalanceDisplay = finalBalance > 0
-      ? `${Math.round(finalBalance).toLocaleString('en-US')} ${currencyName} (له)`
-      : finalBalance < 0
-      ? `${Math.round(Math.abs(finalBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
-      : '-';
+      // Add total and final balance rows only on the last chunk
+      const finalBalanceDisplay = finalBalance > 0
+        ? `${Math.round(finalBalance).toLocaleString('en-US')} ${currencyName} (له)`
+        : finalBalance < 0
+        ? `${Math.round(Math.abs(finalBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
+        : '-';
 
-    const totalIncomingStr = totalIncoming > 0 ? Math.round(totalIncoming).toLocaleString('en-US') : '-';
-    const totalOutgoingStr = totalOutgoing > 0 ? Math.round(totalOutgoing).toLocaleString('en-US') : '-';
+      const totalIncomingStr = totalIncoming > 0 ? Math.round(totalIncoming).toLocaleString('en-US') : '-';
+      const totalOutgoingStr = totalOutgoing > 0 ? Math.round(totalOutgoing).toLocaleString('en-US') : '-';
 
-    return `
-    <div class="currency-section">
-      <div class="section-title">
-        <h2>كشف حساب ${customerName} - ${currencyName}</h2>
-      </div>
-      <table>
+      const summaryRows = isLastChunk ? `
+        <tr class="total-row">
+          <td colspan="2" class="cell text-center">المجموع</td>
+          <td class="cell text-center">${totalIncomingStr}</td>
+          <td class="cell text-center">${totalOutgoingStr}</td>
+          <td class="cell text-center">-</td>
+        </tr>
+        <tr class="final-row">
+          <td colspan="4" class="cell text-center"><strong>الرصيد النهائي</strong></td>
+          <td class="cell text-center"><strong>${finalBalanceDisplay}</strong></td>
+        </tr>
+      ` : '';
+
+      // Add page-break-after for all chunks except the last one
+      const pageBreakClass = !isLastChunk ? 'page-break-after' : '';
+
+      return `
+      <table class="${pageBreakClass}">
         <thead>
           <tr>
             <th style="width: 12%;">التاريخ</th>
@@ -150,18 +178,18 @@ export function generateAccountStatementHTML(
         </thead>
         <tbody>
           ${movementRows}
-          <tr class="total-row">
-            <td colspan="2" class="cell text-center">المجموع</td>
-            <td class="cell text-center">${totalIncomingStr}</td>
-            <td class="cell text-center">${totalOutgoingStr}</td>
-            <td class="cell text-center">-</td>
-          </tr>
-          <tr class="final-row">
-            <td colspan="4" class="cell text-center"><strong>الرصيد النهائي</strong></td>
-            <td class="cell text-center"><strong>${finalBalanceDisplay}</strong></td>
-          </tr>
+          ${summaryRows}
         </tbody>
       </table>
+      `;
+    }).join('');
+
+    return `
+    <div class="currency-section">
+      <div class="section-title">
+        <h2>كشف حساب ${customerName} - ${currencyName}</h2>
+      </div>
+      ${tableChunks}
     </div>
     `;
   }).join('');
@@ -185,7 +213,7 @@ export function generateAccountStatementHTML(
   <style>
     @page {
       size: A4;
-      margin: 15mm 10mm 15mm 10mm;
+      margin: 0;
     }
 
     * {
@@ -199,14 +227,14 @@ export function generateAccountStatementHTML(
       background: #fff;
       color: #000;
       direction: rtl;
-      padding: 0;
+      padding: 15mm 10mm;
       margin: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
     .print-container {
-      padding: 8mm 0;
+      padding: 0;
     }
 
     .header-wrapper {
@@ -252,9 +280,15 @@ export function generateAccountStatementHTML(
       border: 2px solid #000;
       border-top: none;
       background: #fff;
-      margin-bottom: 30px;
+      margin-bottom: 15px;
       page-break-inside: auto;
       break-inside: auto;
+    }
+
+    table.page-break-after {
+      page-break-after: always;
+      break-after: page;
+      margin-bottom: 0;
     }
 
     thead {
@@ -350,22 +384,24 @@ export function generateAccountStatementHTML(
       html, body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        padding: 0 !important;
-        margin: 0 !important;
         width: 100%;
         height: 100%;
       }
 
+      body {
+        padding: 15mm 10mm !important;
+        margin: 0 !important;
+      }
+
       @page {
         size: A4;
-        margin: 15mm 10mm 15mm 10mm;
-        orphans: 3;
-        widows: 3;
+        margin: 0 !important;
+        orphans: 2;
+        widows: 2;
       }
 
       .print-container {
-        padding-top: 8mm;
-        padding-bottom: 8mm;
+        padding: 0 !important;
       }
 
       .header-wrapper {
@@ -397,7 +433,13 @@ export function generateAccountStatementHTML(
         border-collapse: collapse;
         page-break-inside: auto;
         break-inside: auto;
-        margin-bottom: 30px;
+        margin-bottom: 15px;
+      }
+
+      table.page-break-after {
+        page-break-after: always !important;
+        break-after: page !important;
+        margin-bottom: 0 !important;
       }
 
       thead {
@@ -406,8 +448,8 @@ export function generateAccountStatementHTML(
 
       tbody {
         display: table-row-group !important;
-        orphans: 3;
-        widows: 3;
+        orphans: 2;
+        widows: 2;
       }
 
       tfoot {
