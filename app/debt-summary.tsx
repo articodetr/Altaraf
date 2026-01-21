@@ -242,6 +242,17 @@ export default function DebtSummaryScreen() {
     }
   };
 
+  const handleWebDateChange = (dateString: string, isStartDate: boolean) => {
+    if (dateString) {
+      const date = new Date(dateString);
+      if (isStartDate) {
+        setStartDate(date);
+      } else {
+        setEndDate(date);
+      }
+    }
+  };
+
   const getTotalStats = () => {
     const owedByCurrency: { [key: string]: number } = {};
     const owingByCurrency: { [key: string]: number } = {};
@@ -661,27 +672,71 @@ export default function DebtSummaryScreen() {
 
                 <View style={styles.dateInputContainer}>
                   <Text style={styles.dateLabel}>من تاريخ:</Text>
-                  <TouchableOpacity
-                    style={styles.dateButton}
-                    onPress={() => setShowStartDatePicker(true)}
-                  >
-                    <Calendar size={20} color="#4F46E5" />
-                    <Text style={styles.dateButtonText}>{formatDate(startDate)}</Text>
-                  </TouchableOpacity>
+                  {Platform.OS === 'web' ? (
+                    <View style={styles.dateButton}>
+                      <Calendar size={20} color="#4F46E5" />
+                      <input
+                        type="date"
+                        value={startDate ? startDate.toISOString().split('T')[0] : ''}
+                        onChange={(e) => handleWebDateChange(e.target.value, true)}
+                        max={new Date().toISOString().split('T')[0]}
+                        style={{
+                          flex: 1,
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          fontSize: '14px',
+                          textAlign: 'right',
+                          outline: 'none',
+                          color: '#111827',
+                          fontFamily: 'inherit',
+                        }}
+                      />
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => setShowStartDatePicker(true)}
+                    >
+                      <Calendar size={20} color="#4F46E5" />
+                      <Text style={styles.dateButtonText}>{formatDate(startDate)}</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 <View style={styles.dateInputContainer}>
                   <Text style={styles.dateLabel}>إلى تاريخ:</Text>
-                  <TouchableOpacity
-                    style={styles.dateButton}
-                    onPress={() => setShowEndDatePicker(true)}
-                  >
-                    <Calendar size={20} color="#4F46E5" />
-                    <Text style={styles.dateButtonText}>{formatDate(endDate)}</Text>
-                  </TouchableOpacity>
+                  {Platform.OS === 'web' ? (
+                    <View style={styles.dateButton}>
+                      <Calendar size={20} color="#4F46E5" />
+                      <input
+                        type="date"
+                        value={endDate ? endDate.toISOString().split('T')[0] : ''}
+                        onChange={(e) => handleWebDateChange(e.target.value, false)}
+                        max={new Date().toISOString().split('T')[0]}
+                        style={{
+                          flex: 1,
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          fontSize: '14px',
+                          textAlign: 'right',
+                          outline: 'none',
+                          color: '#111827',
+                          fontFamily: 'inherit',
+                        }}
+                      />
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => setShowEndDatePicker(true)}
+                    >
+                      <Calendar size={20} color="#4F46E5" />
+                      <Text style={styles.dateButtonText}>{formatDate(endDate)}</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
-                {showStartDatePicker && (
+                {Platform.OS !== 'web' && showStartDatePicker && (
                   <DateTimePicker
                     value={startDate || new Date()}
                     mode="date"
@@ -692,7 +747,7 @@ export default function DebtSummaryScreen() {
                   />
                 )}
 
-                {showEndDatePicker && (
+                {Platform.OS !== 'web' && showEndDatePicker && (
                   <DateTimePicker
                     value={endDate || new Date()}
                     mode="date"

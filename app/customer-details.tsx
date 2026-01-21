@@ -18,13 +18,14 @@ import { useDataRefresh } from '@/contexts/DataRefreshContext';
 import { ArrowRight, Phone, MessageCircle, Settings, Plus, Receipt, ChartBar as BarChart3, Calculator, FileText, ChevronDown, ChevronUp, Search, X, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { Customer, AccountMovement, CURRENCIES } from '@/types/database';
-import { format, isSameMonth, isSameYear, startOfMonth, endOfMonth, subMonths, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, isSameMonth, isSameYear, startOfDay, endOfDay } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { generateAccountStatementHTML } from '@/utils/accountStatementGenerator';
 import { getLogoBase64 } from '@/utils/logoHelper';
 import QuickAddMovementSheet from '@/components/QuickAddMovementSheet';
+import CalendarRangePicker from '@/components/CalendarRangePicker';
 
 interface GroupedMovements {
   [key: string]: AccountMovement[];
@@ -183,8 +184,6 @@ export default function CustomerDetailsScreen() {
   const [showDateRangeModal, setShowDateRangeModal] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [customStartDateText, setCustomStartDateText] = useState('');
-  const [customEndDateText, setCustomEndDateText] = useState('');
 
   const loadCustomerData = useCallback(async () => {
     try {
@@ -361,91 +360,17 @@ export default function CustomerDetailsScreen() {
     }
   };
 
-  const handlePrintAll = () => {
-    executePrint(movements);
-  };
-
-  const handlePrintDateRange = () => {
-    if (!startDate || !endDate) {
-      Alert.alert('تنبيه', 'الرجاء اختيار الفترة الزمنية');
-      return;
-    }
-
-    if (startDate > endDate) {
-      Alert.alert('تنبيه', 'تاريخ البداية يجب أن يكون أقدم من تاريخ النهاية');
-      return;
-    }
+  const handleCalendarConfirm = (selectedStartDate: Date, selectedEndDate: Date) => {
+    setStartDate(selectedStartDate);
+    setEndDate(selectedEndDate);
+    setShowDateRangeModal(false);
 
     const filtered = movements.filter((movement) => {
       const movementDate = new Date(movement.created_at);
-      return movementDate >= startOfDay(startDate) && movementDate <= endOfDay(endDate);
+      return movementDate >= startOfDay(selectedStartDate) && movementDate <= endOfDay(selectedEndDate);
     });
 
     executePrint(filtered);
-  };
-
-  const setQuickDateRange = (type: 'today' | 'week' | 'month' | 'lastMonth' | 'all') => {
-    const now = new Date();
-
-    switch (type) {
-      case 'today':
-        setStartDate(startOfDay(now));
-        setEndDate(endOfDay(now));
-        setCustomStartDateText(format(startOfDay(now), 'dd/MM/yyyy'));
-        setCustomEndDateText(format(endOfDay(now), 'dd/MM/yyyy'));
-        break;
-      case 'week':
-        setStartDate(subDays(now, 7));
-        setEndDate(now);
-        setCustomStartDateText(format(subDays(now, 7), 'dd/MM/yyyy'));
-        setCustomEndDateText(format(now, 'dd/MM/yyyy'));
-        break;
-      case 'month':
-        setStartDate(startOfMonth(now));
-        setEndDate(endOfMonth(now));
-        setCustomStartDateText(format(startOfMonth(now), 'dd/MM/yyyy'));
-        setCustomEndDateText(format(endOfMonth(now), 'dd/MM/yyyy'));
-        break;
-      case 'lastMonth':
-        const lastMonth = subMonths(now, 1);
-        setStartDate(startOfMonth(lastMonth));
-        setEndDate(endOfMonth(lastMonth));
-        setCustomStartDateText(format(startOfMonth(lastMonth), 'dd/MM/yyyy'));
-        setCustomEndDateText(format(endOfMonth(lastMonth), 'dd/MM/yyyy'));
-        break;
-      case 'all':
-        setStartDate(null);
-        setEndDate(null);
-        setCustomStartDateText('');
-        setCustomEndDateText('');
-        break;
-    }
-  };
-
-  const parseCustomDate = (dateText: string): Date | null => {
-    const parts = dateText.split('/');
-    if (parts.length !== 3) return null;
-
-    const day = parseInt(parts[0]);
-    const month = parseInt(parts[1]) - 1;
-    const year = parseInt(parts[2]);
-
-    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
-
-    return new Date(year, month, day);
-  };
-
-  const handleCustomDateChange = () => {
-    const parsedStartDate = parseCustomDate(customStartDateText);
-    const parsedEndDate = parseCustomDate(customEndDateText);
-
-    if (!parsedStartDate || !parsedEndDate) {
-      Alert.alert('تنبيه', 'الرجاء إدخال التواريخ بصيغة صحيحة (يوم/شهر/سنة)');
-      return;
-    }
-
-    setStartDate(parsedStartDate);
-    setEndDate(parsedEndDate);
   };
 
   const handleSettleUp = () => {
@@ -1225,164 +1150,14 @@ export default function CustomerDetailsScreen() {
         </TouchableOpacity>
       </Modal>
 
-      <Modal
+      <CalendarRangePicker
         visible={showDateRangeModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowDateRangeModal(false)}
-      >
-        <View style={styles.dateRangeModalOverlay}>
-          <View style={styles.dateRangeModalContent}>
-            <View style={styles.dateRangeHeader}>
-              <TouchableOpacity
-                onPress={() => setShowDateRangeModal(false)}
-                style={styles.dateRangeCloseButton}
-              >
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-              <Text style={styles.dateRangeTitle}>اختر الفترة الزمنية</Text>
-              <View style={{ width: 40 }} />
-            </View>
-
-            <ScrollView style={styles.dateRangeScroll}>
-              <View style={styles.quickOptionsSection}>
-                <Text style={styles.sectionTitle}>خيارات سريعة:</Text>
-                <View style={styles.quickOptionsGrid}>
-                  <TouchableOpacity
-                    style={styles.quickOptionButton}
-                    onPress={() => setQuickDateRange('today')}
-                  >
-                    <Calendar size={18} color="#10B981" />
-                    <Text style={styles.quickOptionText}>اليوم</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.quickOptionButton}
-                    onPress={() => setQuickDateRange('week')}
-                  >
-                    <Calendar size={18} color="#10B981" />
-                    <Text style={styles.quickOptionText}>آخر 7 أيام</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.quickOptionButton}
-                    onPress={() => setQuickDateRange('month')}
-                  >
-                    <Calendar size={18} color="#10B981" />
-                    <Text style={styles.quickOptionText}>هذا الشهر</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.quickOptionButton}
-                    onPress={() => setQuickDateRange('lastMonth')}
-                  >
-                    <Calendar size={18} color="#10B981" />
-                    <Text style={styles.quickOptionText}>الشهر الماضي</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.customDateSection}>
-                <Text style={styles.sectionTitle}>تخصيص الفترة:</Text>
-                <Text style={styles.dateFormatHint}>
-                  الصيغة: يوم/شهر/سنة (مثال: 01/01/2024)
-                </Text>
-
-                <View style={styles.dateInputContainer}>
-                  <Text style={styles.dateInputLabel}>من تاريخ:</Text>
-                  <TextInput
-                    style={styles.dateInput}
-                    placeholder="01/01/2024"
-                    placeholderTextColor="#9CA3AF"
-                    value={customStartDateText}
-                    onChangeText={setCustomStartDateText}
-                    keyboardType="numeric"
-                    textAlign="right"
-                  />
-                </View>
-
-                <View style={styles.dateInputContainer}>
-                  <Text style={styles.dateInputLabel}>إلى تاريخ:</Text>
-                  <TextInput
-                    style={styles.dateInput}
-                    placeholder="31/12/2024"
-                    placeholderTextColor="#9CA3AF"
-                    value={customEndDateText}
-                    onChangeText={setCustomEndDateText}
-                    keyboardType="numeric"
-                    textAlign="right"
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.applyCustomDateButton}
-                  onPress={handleCustomDateChange}
-                >
-                  <Text style={styles.applyCustomDateButtonText}>
-                    تطبيق التواريخ المخصصة
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {startDate && endDate && (
-                <View style={styles.selectedRangePreview}>
-                  <Text style={styles.selectedRangeTitle}>الفترة المحددة:</Text>
-                  <Text style={styles.selectedRangeText}>
-                    من {format(startDate, 'dd MMMM yyyy', { locale: ar })}
-                  </Text>
-                  <Text style={styles.selectedRangeText}>
-                    إلى {format(endDate, 'dd MMMM yyyy', { locale: ar })}
-                  </Text>
-                  <Text style={styles.movementsCountText}>
-                    عدد الحركات:{' '}
-                    {
-                      movements.filter((m) => {
-                        const movementDate = new Date(m.created_at);
-                        return (
-                          movementDate >= startOfDay(startDate) &&
-                          movementDate <= endOfDay(endDate)
-                        );
-                      }).length
-                    }{' '}
-                    حركة
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-
-            <View style={styles.dateRangeActions}>
-              <TouchableOpacity
-                style={styles.printAllButton}
-                onPress={handlePrintAll}
-                disabled={isPrinting}
-              >
-                {isPrinting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <FileText size={18} color="#FFFFFF" />
-                    <Text style={styles.printAllButtonText}>
-                      طباعة التقرير كامل ({movements.length} حركة)
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.printRangeButton,
-                  (!startDate || !endDate || isPrinting) &&
-                    styles.printRangeButtonDisabled,
-                ]}
-                onPress={handlePrintDateRange}
-                disabled={!startDate || !endDate || isPrinting}
-              >
-                <FileText size={18} color="#FFFFFF" />
-                <Text style={styles.printRangeButtonText}>
-                  طباعة الفترة المحددة
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowDateRangeModal(false)}
+        onConfirm={handleCalendarConfirm}
+        initialStartDate={startDate}
+        initialEndDate={endDate}
+        maxDate={new Date()}
+      />
     </View>
   );
 }
@@ -1924,6 +1699,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
     textAlign: 'right',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateInputText: {
+    fontSize: 16,
+    color: '#111827',
+    flex: 1,
   },
   applyCustomDateButton: {
     backgroundColor: '#10B981',
