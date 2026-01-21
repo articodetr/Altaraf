@@ -248,36 +248,62 @@ export default function CalendarRangePicker({
           <View style={styles.footer}>
             {(startDate || endDate) && (
               <TouchableOpacity
-                style={styles.resetButton}
+                style={styles.clearButton}
                 onPress={handleReset}
               >
-                <X size={18} color="#6B7280" />
-                <Text style={styles.resetButtonText}>إعادة تعيين</Text>
+                <X size={16} color="#6B7280" />
+                <Text style={styles.clearButtonText}>إلغاء التحديد</Text>
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity
-              style={styles.printAllButton}
-              onPress={() => {
-                onPrintAll();
-                onClose();
-              }}
-            >
-              <FileText size={20} color="#FFFFFF" />
-              <Text style={styles.printAllButtonText}>طباعة الكل</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                (!startDate || !endDate) && styles.confirmButtonDisabled,
-              ]}
-              onPress={handleConfirm}
-              disabled={!startDate || !endDate}
-            >
-              <Check size={20} color="#FFFFFF" />
-              <Text style={styles.confirmButtonText}>طباعة الفترة</Text>
-            </TouchableOpacity>
+            <View style={styles.actionContainer}>
+              {startDate && endDate ? (
+                <>
+                  <Text style={styles.instructionText}>
+                    سيتم طباعة الحركات من {format(startDate, 'dd MMM', { locale: ar })} إلى {format(endDate, 'dd MMM', { locale: ar })}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={handleConfirm}
+                  >
+                    <FileText size={20} color="#FFFFFF" />
+                    <Text style={styles.primaryButtonText}>طباعة الفترة المحددة</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={() => {
+                      onPrintAll();
+                      onClose();
+                    }}
+                  >
+                    <Text style={styles.secondaryButtonText}>أو طباعة الكل بدون تحديد</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.instructionText}>
+                    {!startDate && !endDate
+                      ? 'طباعة جميع الحركات بدون تحديد فترة'
+                      : 'اختر تاريخ النهاية لإكمال التحديد'}
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryButton,
+                      styles.primaryButtonBlue,
+                      startDate && !endDate && styles.primaryButtonDisabled,
+                    ]}
+                    onPress={() => {
+                      onPrintAll();
+                      onClose();
+                    }}
+                    disabled={!!(startDate && !endDate)}
+                  >
+                    <FileText size={20} color="#FFFFFF" />
+                    <Text style={styles.primaryButtonText}>طباعة جميع الحركات</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
         </View>
       </View>
@@ -433,63 +459,71 @@ const styles = StyleSheet.create({
     color: '#D1D5DB',
   },
   footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
-    gap: 12,
   },
-  resetButton: {
+  clearButton: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
+    gap: 4,
+    alignSelf: 'flex-end',
+    marginBottom: 12,
   },
-  resetButtonText: {
-    fontSize: 14,
+  clearButtonText: {
+    fontSize: 13,
     fontWeight: '600',
     color: '#6B7280',
   },
-  printAllButton: {
-    flex: 1,
-    flexDirection: 'row',
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#3B82F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minWidth: 140,
+  actionContainer: {
+    gap: 12,
   },
-  printAllButtonText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  instructionText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
   },
-  confirmButton: {
-    flex: 1,
+  primaryButton: {
     flexDirection: 'row',
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 12,
     backgroundColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    minWidth: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  confirmButtonDisabled: {
+  primaryButtonBlue: {
+    backgroundColor: '#3B82F6',
+  },
+  primaryButtonDisabled: {
     backgroundColor: '#D1D5DB',
     opacity: 0.6,
   },
-  confirmButtonText: {
-    fontSize: 15,
+  primaryButtonText: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  secondaryButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+    textDecorationLine: 'underline',
   },
 });
