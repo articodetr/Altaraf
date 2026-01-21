@@ -53,13 +53,14 @@ export default function WhatsAppTemplatesScreen() {
 
     setIsSaving(true);
     try {
+      const FIXED_SETTINGS_ID = '00000000-0000-0000-0000-000000000000';
       const { error } = await supabase
         .from('app_settings')
         .update({
           whatsapp_account_statement_template: templates.account_statement,
           whatsapp_share_account_template: templates.share_account,
         })
-        .eq('id', 1);
+        .eq('id', FIXED_SETTINGS_ID);
 
       if (error) throw error;
 
