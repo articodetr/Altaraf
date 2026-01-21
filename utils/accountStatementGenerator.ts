@@ -64,6 +64,26 @@ export function generateAccountStatementHTML(
 
   const reportDate = format(new Date(), 'EEEE، dd MMMM yyyy', { locale: ar });
 
+  // Helper function to split movements into pages
+  const splitIntoPages = (movements: MovementWithBalance[], firstPageRows: number, subsequentPageRows: number) => {
+    if (movements.length === 0) return [];
+
+    const pages: MovementWithBalance[][] = [];
+    let currentIndex = 0;
+
+    // First page
+    pages.push(movements.slice(0, Math.min(firstPageRows, movements.length)));
+    currentIndex = firstPageRows;
+
+    // Subsequent pages
+    while (currentIndex < movements.length) {
+      pages.push(movements.slice(currentIndex, currentIndex + subsequentPageRows));
+      currentIndex += subsequentPageRows;
+    }
+
+    return pages;
+  };
+
   // Generate sections for each currency
   const currencySections = Object.entries(groupedByCurrency).map(([curr, currMovements]) => {
     const movementsWithBalance: MovementWithBalance[] = [];
@@ -95,61 +115,54 @@ export function generateAccountStatementHTML(
     const finalBalance = totalIncoming - totalOutgoing;
     const currencyName = getCurrencyName(curr);
 
-    const movementRows = movementsWithBalance
-      .map((movement) => {
-        const balanceDisplay = movement.runningBalance > 0
-          ? `${Math.round(movement.runningBalance).toLocaleString('en-US')} ${currencyName} (له)`
-          : movement.runningBalance < 0
-          ? `${Math.round(Math.abs(movement.runningBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
-          : '-';
+    // Split movements into pages: 9 rows for first page, 13 rows for subsequent pages
+    const pages = splitIntoPages(movementsWithBalance, 9, 13);
 
-        const dateStr = format(new Date(movement.created_at), 'dd/MM/yyyy');
-        const combinedAmount = getCombinedAmount(movement);
-        const incomingAmount = movement.movement_type === 'incoming'
-          ? Math.round(combinedAmount).toLocaleString('en-US')
-          : '-';
-        const outgoingAmount = movement.movement_type === 'outgoing'
-          ? Math.round(combinedAmount).toLocaleString('en-US')
-          : '-';
+    // Generate HTML for each page
+    const pageHTMLs = pages.map((pageMovements, pageIndex) => {
+      const isFirstPage = pageIndex === 0;
+      const isLastPage = pageIndex === pages.length - 1;
 
-        return `
-        <tr>
-          <td class="cell text-center">${dateStr}</td>
-          <td class="cell" style="text-align: right; padding-right: 12px;">${movement.notes || movement.movement_number}</td>
-          <td class="cell text-center">${incomingAmount}</td>
-          <td class="cell text-center">${outgoingAmount}</td>
-          <td class="cell text-center">${balanceDisplay}</td>
-        </tr>
-        `;
-      })
-      .join('');
+      const movementRows = pageMovements
+        .map((movement) => {
+          const balanceDisplay = movement.runningBalance > 0
+            ? `${Math.round(movement.runningBalance).toLocaleString('en-US')} ${currencyName} (له)`
+            : movement.runningBalance < 0
+            ? `${Math.round(Math.abs(movement.runningBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
+            : '-';
 
-    const finalBalanceDisplay = finalBalance > 0
-      ? `${Math.round(finalBalance).toLocaleString('en-US')} ${currencyName} (له)`
-      : finalBalance < 0
-      ? `${Math.round(Math.abs(finalBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
-      : '-';
+          const dateStr = format(new Date(movement.created_at), 'dd/MM/yyyy');
+          const combinedAmount = getCombinedAmount(movement);
+          const incomingAmount = movement.movement_type === 'incoming'
+            ? Math.round(combinedAmount).toLocaleString('en-US')
+            : '-';
+          const outgoingAmount = movement.movement_type === 'outgoing'
+            ? Math.round(combinedAmount).toLocaleString('en-US')
+            : '-';
 
-    const totalIncomingStr = totalIncoming > 0 ? Math.round(totalIncoming).toLocaleString('en-US') : '-';
-    const totalOutgoingStr = totalOutgoing > 0 ? Math.round(totalOutgoing).toLocaleString('en-US') : '-';
-
-    return `
-    <div class="currency-section">
-      <div class="section-title">
-        <h2>كشف حساب ${customerName} - ${currencyName}</h2>
-      </div>
-      <table>
-        <thead>
+          return `
           <tr>
-            <th style="width: 12%;">التاريخ</th>
-            <th style="width: 38%;">البيان</th>
-            <th style="width: 15%;">له</th>
-            <th style="width: 15%;">عليه</th>
-            <th style="width: 20%;">الرصيد</th>
+            <td class="cell text-center">${dateStr}</td>
+            <td class="cell" style="text-align: right; padding-right: 12px;">${movement.notes || movement.movement_number}</td>
+            <td class="cell text-center">${incomingAmount}</td>
+            <td class="cell text-center">${outgoingAmount}</td>
+            <td class="cell text-center">${balanceDisplay}</td>
           </tr>
-        </thead>
-        <tbody>
-          ${movementRows}
+          `;
+        })
+        .join('');
+
+      const finalBalanceDisplay = finalBalance > 0
+        ? `${Math.round(finalBalance).toLocaleString('en-US')} ${currencyName} (له)`
+        : finalBalance < 0
+        ? `${Math.round(Math.abs(finalBalance)).toLocaleString('en-US')} ${currencyName} (عليه)`
+        : '-';
+
+      const totalIncomingStr = totalIncoming > 0 ? Math.round(totalIncoming).toLocaleString('en-US') : '-';
+      const totalOutgoingStr = totalOutgoing > 0 ? Math.round(totalOutgoing).toLocaleString('en-US') : '-';
+
+      // Add summary rows only on the last page
+      const summaryRows = isLastPage ? `
           <tr class="total-row">
             <td colspan="2" class="cell text-center">المجموع</td>
             <td class="cell text-center">${totalIncomingStr}</td>
@@ -160,8 +173,37 @@ export function generateAccountStatementHTML(
             <td colspan="4" class="cell text-center"><strong>الرصيد النهائي</strong></td>
             <td class="cell text-center"><strong>${finalBalanceDisplay}</strong></td>
           </tr>
-        </tbody>
-      </table>
+      ` : '';
+
+      return `
+      <div class="page-wrapper ${isFirstPage ? 'first-page' : 'subsequent-page'}">
+        ${isFirstPage ? `
+        <div class="section-title">
+          <h2>كشف حساب ${customerName} - ${currencyName}</h2>
+        </div>
+        ` : ''}
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 12%;">التاريخ</th>
+              <th style="width: 38%;">البيان</th>
+              <th style="width: 15%;">له</th>
+              <th style="width: 15%;">عليه</th>
+              <th style="width: 20%;">الرصيد</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movementRows}
+            ${summaryRows}
+          </tbody>
+        </table>
+      </div>
+      `;
+    }).join('');
+
+    return `
+    <div class="currency-section">
+      ${pageHTMLs}
     </div>
     `;
   }).join('');
@@ -210,8 +252,22 @@ export function generateAccountStatementHTML(
     }
 
     .currency-section {
-      margin-bottom: 40px;
+      margin-bottom: 0;
+    }
+
+    .page-wrapper {
       page-break-inside: avoid;
+      padding-top: 20px;
+      padding-bottom: 30px;
+    }
+
+    .page-wrapper.first-page {
+      padding-top: 0;
+    }
+
+    .page-wrapper.subsequent-page {
+      page-break-before: always;
+      padding-top: 40px;
     }
 
     .section-title {
@@ -233,8 +289,11 @@ export function generateAccountStatementHTML(
       width: 100%;
       border-collapse: collapse;
       border: 2px solid #000;
-      border-top: none;
       background: #fff;
+    }
+
+    .page-wrapper.first-page table {
+      border-top: none;
     }
 
     th {
@@ -309,8 +368,12 @@ export function generateAccountStatementHTML(
         page-break-after: avoid;
       }
 
-      .currency-section {
+      .page-wrapper {
         page-break-inside: avoid;
+      }
+
+      .page-wrapper.subsequent-page {
+        page-break-before: always;
       }
 
       table {
