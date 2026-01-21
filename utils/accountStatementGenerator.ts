@@ -184,12 +184,17 @@ export function generateAccountStatementHTML(
   <title>كشف الحساب - ${customerName}</title>
 
   <style>
+    /* الهوامش القياسية للورق A4 */
     @page {
       size: A4 portrait;
-      margin: 15mm 12mm 15mm 12mm;
+      margin: 20mm 12mm 12mm 12mm;
+      orphans: 3;
+      widows: 3;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     html, body {
       margin: 0;
@@ -203,30 +208,22 @@ export function generateAccountStatementHTML(
     }
 
     .print-container {
-      padding: 6mm 0;
+      margin: 0;
+      padding: 0;
     }
 
+    /* الترويسة - تظهر في الصفحة الأولى فقط */
     .header-wrapper {
-      margin-bottom: 6mm;
+      margin-bottom: 5mm;
       page-break-inside: avoid;
       break-inside: avoid;
     }
 
-    /* مساحة جانبية للجداول فقط */
-    .tables-area {
-      padding-left: 10mm;
-      padding-right: 10mm;
-    }
-
-    /* مسافة قبل أول جدول في الصفحة الأولى */
-    .tables-area .currency-section:first-child {
-      margin-top: 2mm;
-    }
-
     .currency-section {
-      margin-bottom: 6mm;
+      margin-bottom: 0;
     }
 
+    /* فاصل بين عملات مختلفة - صفحة جديدة لكل عملة */
     .currency-section.page-break-after {
       page-break-after: always;
       break-after: page;
@@ -234,33 +231,40 @@ export function generateAccountStatementHTML(
 
     .section-title {
       border: 2px solid #000;
-      padding: 12px 20px;
+      padding: 10px 16px;
       text-align: center;
       background: #f9fafb;
       page-break-inside: avoid;
       break-inside: avoid;
+      margin-bottom: 0;
     }
 
     .section-title h2 {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: bold;
       margin: 0;
       color: #111827;
     }
 
+    /* جدول واحد لكل عملة - يملأ الصفحات تلقائياً */
     table {
       width: 100%;
       border-collapse: collapse;
       border: 2px solid #000;
       border-top: none;
       background: #fff;
-      margin: 0 0 6mm 0;
+      margin: 0;
       page-break-inside: auto;
       break-inside: auto;
     }
 
+    /* رأس الأعمدة - يتكرر في كل صفحة جديدة */
     thead {
       display: table-header-group;
+    }
+
+    tbody {
+      display: table-row-group;
     }
 
     th {
@@ -274,7 +278,7 @@ export function generateAccountStatementHTML(
     }
 
     td {
-      padding: 7px 6px;
+      padding: 7px 5px;
       border: 1px solid #000;
       text-align: center;
       font-size: 12px;
@@ -282,32 +286,34 @@ export function generateAccountStatementHTML(
       vertical-align: middle;
     }
 
-    .cell { min-height: 30px; }
+    .cell {
+      min-height: 28px;
+    }
 
     .cell-notes {
       text-align: right;
-      padding-right: 12px;
+      padding-right: 10px;
       word-break: break-word;
     }
 
-    tr, th, td {
+    /* منع تقسيم الصف الواحد بين صفحتين */
+    tr {
       break-inside: avoid;
       page-break-inside: avoid;
     }
 
-    .keep-together {
+    th, td {
       break-inside: avoid;
       page-break-inside: avoid;
-      page-break-before: avoid;
-      break-before: avoid;
     }
 
+    /* إجبار صفوف الإجمالي والرصيد النهائي ألا تنقسم */
     .total-row {
       background-color: #f3f4f6;
       font-weight: bold;
-      font-size: 14px;
-      break-inside: avoid;
-      page-break-inside: avoid;
+      font-size: 13px;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
       break-before: avoid;
       page-break-before: avoid;
     }
@@ -315,20 +321,20 @@ export function generateAccountStatementHTML(
     .final-row {
       background-color: #dbeafe;
       font-weight: bold;
-      font-size: 15px;
+      font-size: 14px;
       color: #1e40af;
-      break-inside: avoid;
-      page-break-inside: avoid;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
       break-before: avoid;
       page-break-before: avoid;
     }
 
     .footer {
-      margin-top: 6mm;
+      margin-top: 5mm;
       text-align: center;
       font-size: 11px;
       color: #6b7280;
-      padding: 10px 0;
+      padding: 8px 0;
       border-top: 1px solid #e5e7eb;
       page-break-inside: avoid;
       break-inside: avoid;
@@ -345,17 +351,27 @@ export function generateAccountStatementHTML(
 
       @page {
         size: A4 portrait;
-        margin: 15mm 12mm 15mm 12mm;
+        margin: 20mm 12mm 12mm 12mm;
         orphans: 3;
         widows: 3;
       }
 
-      .print-container { padding: 6mm 0 !important; }
-      thead { display: table-header-group !important; }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
 
-      .tables-area {
-        padding-left: 10mm !important;
-        padding-right: 10mm !important;
+      .print-container {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      thead {
+        display: table-header-group !important;
+      }
+
+      tbody {
+        display: table-row-group !important;
       }
     }
   </style>
@@ -363,15 +379,13 @@ export function generateAccountStatementHTML(
 
 <body>
   <div class="print-container">
-    <!-- الترويسة: تبقى كما هي في الصفحة الأولى -->
+    <!-- الترويسة: تظهر في الصفحة الأولى فقط -->
     <div class="header-wrapper">
       ${headerHTML}
     </div>
 
-    <!-- محتوى الجداول فقط: مساحة جانبية للجداول -->
-    <div class="tables-area">
-      ${currencySections}
-    </div>
+    <!-- الجداول: تملأ الصفحات تلقائياً -->
+    ${currencySections}
 
     <div class="footer">
       <div>تاريخ الطباعة: ${reportDate}</div>
