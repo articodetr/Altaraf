@@ -25,6 +25,8 @@ import * as Sharing from 'expo-sharing';
 import { generateAccountStatementHTML } from '@/utils/accountStatementGenerator';
 import { getLogoBase64 } from '@/utils/logoHelper';
 import QuickAddMovementSheet from '@/components/QuickAddMovementSheet';
+import { useAuth } from '@/contexts/AuthContext';
+import { processAccountStatementTemplate } from '@/utils/whatsappTemplateHelper';
 
 interface GroupedMovements {
   [key: string]: AccountMovement[];
@@ -170,6 +172,7 @@ export default function CustomerDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { lastRefreshTime } = useDataRefresh();
+  const { settings } = useAuth();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [movements, setMovements] = useState<AccountMovement[]>([]);
   const [totalIncoming, setTotalIncoming] = useState(0);
@@ -247,29 +250,32 @@ export default function CustomerDetailsScreen() {
     if (customer?.phone) {
       const cleanPhone = customer.phone.replace(/[^0-9]/g, '');
       const balances = calculateBalanceByCurrency(movements);
-      const currentDate = format(new Date(), 'EEEE، dd MMMM yyyy', {
-        locale: ar,
-      });
 
-      let message = `مرحباً ${customer.name}،\n`;
-      message += `رقم الحساب: ${customer.account_number}\n`;
-      message += `التاريخ: ${currentDate}\n\n`;
-
+      let balanceText = '';
       if (balances.length === 0) {
-        message += `رصيدك الحالي: متساوي`;
+        balanceText = 'رصيدك الحالي: متساوي';
       } else {
-        message += `رصيدك الحالي:\n`;
+        balanceText = 'رصيدك الحالي:\n';
         balances.forEach((currBalance) => {
           const symbol = getCurrencySymbol(currBalance.currency);
           if (currBalance.balance > 0) {
-            message += `• لك عندنا ${Math.round(currBalance.balance)} ${symbol}\n`;
+            balanceText += `• لك عندنا ${Math.round(currBalance.balance)} ${symbol}\n`;
           } else {
-            message += `• لنا عندك ${Math.round(Math.abs(currBalance.balance))} ${symbol}\n`;
+            balanceText += `• لنا عندك ${Math.round(Math.abs(currBalance.balance))} ${symbol}\n`;
           }
         });
       }
 
-      message += `\nشكراً`;
+      const message = processAccountStatementTemplate(
+        settings?.whatsapp_account_statement_template || undefined,
+        {
+          customerName: customer.name,
+          accountNumber: customer.account_number || '',
+          balance: balanceText,
+          shopName: settings?.shop_name || undefined,
+          shopPhone: settings?.shop_phone || undefined,
+        }
+      );
 
       const encodedMessage = encodeURIComponent(message);
       Linking.openURL(

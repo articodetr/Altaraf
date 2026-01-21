@@ -23,6 +23,7 @@ import { Transaction, Customer } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { processTransactionTemplate } from '@/utils/whatsappTemplateHelper';
 
 export default function TransactionDetailsScreen() {
   const router = useRouter();
@@ -88,7 +89,20 @@ export default function TransactionDetailsScreen() {
     if (!customer?.phone || !transaction || !settings) return;
 
     const cleanPhone = customer.phone.replace(/[^0-9]/g, '');
-    const message = `مرحباً ${customer.name}،\n\nسند الحوالة رقم: ${transaction.transaction_number}\n\nالمبلغ المرسل: ${Number(transaction.amount_sent).toFixed(2)} ${transaction.currency_sent}\nالمبلغ المستلم: ${Number(transaction.amount_received).toFixed(2)} ${transaction.currency_received}\n\nشكراً لثقتكم بنا\n${settings.shop_name}`;
+
+    const message = processTransactionTemplate(
+      settings.whatsapp_transaction_template || undefined,
+      {
+        customerName: customer.name,
+        transactionNumber: transaction.transaction_number || '',
+        amountSent: Number(transaction.amount_sent).toFixed(2),
+        amountReceived: Number(transaction.amount_received).toFixed(2),
+        currencySent: transaction.currency_sent,
+        currencyReceived: transaction.currency_received,
+        shopName: settings.shop_name || undefined,
+        shopPhone: settings.shop_phone || undefined,
+      }
+    );
 
     Linking.openURL(`whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`);
   };
