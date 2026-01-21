@@ -19,37 +19,14 @@ export function generatePDFHeaderHTML(options: PDFHeaderOptions): string {
     showPhones = true,
   } = options;
 
-  const logoHTML = logoDataUrl && logoDataUrl !== '' && !logoDataUrl.includes('undefined')
-    ? `<img src="${logoDataUrl}" alt="Logo" class="company-logo" onerror="this.style.display='none'" />`
-    : `<div class="company-name-ar">الترف</div>
-       <div class="company-name-ar">للحوالات المالية</div>`;
+  // استخدام صورة البانر الكاملة
+  const headerImageHTML = logoDataUrl && logoDataUrl !== '' && !logoDataUrl.includes('undefined')
+    ? `<img src="${logoDataUrl}" alt="Header Banner" class="header-banner-image" onerror="this.style.display='none'" />`
+    : `<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" alt="Default Banner" class="header-banner-image" />`;
 
   return `
-    <div class="pdf-header" style="background: linear-gradient(135deg, ${primaryColor} 0%, ${darkColor} 100%);">
-      ${showPhones ? `
-      <div class="header-right">
-        <div class="contact-box">
-          <div class="contact-box-title">Yemen - Sana'a</div>
-          <div class="contact-box-phone">${COMPANY_INFO.phone1}</div>
-          <div class="contact-box-phone">${COMPANY_INFO.phone2}</div>
-        </div>
-      </div>
-      ` : '<div class="header-spacer"></div>'}
-
-      <div class="header-center">
-        ${logoHTML}
-        <div class="company-name-en" style="background: #ffffff; color: ${primaryColor};">Al-Taraf Exchange</div>
-      </div>
-
-      ${showPhones ? `
-      <div class="header-left">
-        <div class="contact-box">
-          <div class="contact-box-title">اليمن - صنعاء</div>
-          <div class="contact-box-phone">${COMPANY_INFO.phone1}</div>
-          <div class="contact-box-phone">${COMPANY_INFO.phone2}</div>
-        </div>
-      </div>
-      ` : '<div class="header-spacer"></div>'}
+    <div class="pdf-header-banner">
+      ${headerImageHTML}
     </div>
 
     <div class="document-title">${title}</div>
@@ -58,123 +35,23 @@ export function generatePDFHeaderHTML(options: PDFHeaderOptions): string {
 
 export function generatePDFHeaderStyles(): string {
   return `
-    .pdf-header {
+    .pdf-header-banner {
       position: relative;
       width: 100%;
-      min-height: 140px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 30px;
+      height: auto;
       margin-bottom: 20px;
-      overflow: visible;
+      overflow: hidden;
       flex-shrink: 0;
       box-sizing: border-box;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
-    .header-left,
-    .header-right {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      width: 180px;
-      flex-shrink: 0;
-    }
-
-    .header-left {
-      justify-content: flex-start;
-    }
-
-    .header-right {
-      justify-content: flex-end;
-    }
-
-    .header-center {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      flex: 1;
-      min-width: 0;
-    }
-
-    .header-spacer {
-      width: 180px;
-      flex-shrink: 0;
-    }
-
-    .contact-box {
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(8px);
-      border: 2px solid rgba(255, 255, 255, 0.4);
-      border-radius: 16px;
-      padding: 10px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      align-items: center;
-      justify-content: center;
+    .header-banner-image {
       width: 100%;
-      max-width: 170px;
-      box-sizing: border-box;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    .contact-box-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #ffffff;
-      text-align: center;
-      line-height: 1.4;
-      white-space: nowrap;
-    }
-
-    .contact-box-phone {
-      font-size: 12px;
-      font-weight: 600;
-      color: #ffffff;
-      text-align: center;
-      direction: ltr;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
-
-    .company-logo {
-      height: 60px;
-      width: auto;
-      max-width: 180px;
+      height: auto;
+      display: block;
       object-fit: contain;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    .company-name-ar {
-      font-size: 22px;
-      font-weight: 800;
-      color: #ffffff;
-      line-height: 1.3;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    .company-name-en {
-      padding: 6px 20px;
-      border-radius: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-      white-space: nowrap;
-      line-height: 1.4;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -200,7 +77,7 @@ export function generatePDFHeaderStyles(): string {
         color-adjust: exact !important;
       }
 
-      .pdf-header {
+      .pdf-header-banner {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
@@ -214,18 +91,7 @@ export function generatePDFHeaderStyles(): string {
         page-break-after: avoid;
       }
 
-      .contact-box {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        box-sizing: border-box;
-      }
-
-      .company-name-en {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
-      .company-logo {
+      .header-banner-image {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }

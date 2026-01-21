@@ -292,9 +292,9 @@ export default function ShopSettingsScreen() {
 
       <KeyboardAwareView contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>شعار المحل</Text>
+          <Text style={styles.sectionTitle}>صورة ترويسة المحل</Text>
           <Text style={styles.sectionDescription}>
-            يمكنك رفع شعار من المعرض أو الكاميرا، أو رفع ملف PNG مباشرة. الحد الأقصى لحجم الملف هو 5 MB
+            قم برفع صورة ترويسة بمقاسات 2048×405 بكسل تحتوي على الشعار والعنوان والأرقام. الحد الأقصى للحجم 5 MB
           </Text>
           {selectedImageUri && (
             <View style={styles.infoBox}>
@@ -383,8 +383,8 @@ export default function ShopSettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>الشعار في السندات</Text>
-          <Text style={styles.sectionDescription}>اختر الشعار الذي سيظهر في جميع السندات</Text>
+          <Text style={styles.sectionTitle}>الترويسة في السندات</Text>
+          <Text style={styles.sectionDescription}>اختر الترويسة التي ستظهر في جميع السندات والتقارير</Text>
 
           <View style={styles.logoOptionsContainer}>
             <TouchableOpacity
@@ -409,13 +409,13 @@ export default function ShopSettingsScreen() {
                 )}
               </View>
               <View style={styles.logoOptionContent}>
-                <Text style={styles.logoOptionTitle}>الشعار المرفوع</Text>
+                <Text style={styles.logoOptionTitle}>الترويسة المرفوعة</Text>
                 <Text style={styles.logoOptionDescription}>
                   {logoUri
-                    ? 'استخدام الشعار الحالي'
+                    ? 'استخدام الترويسة الحالية'
                     : selectedImageUri
                     ? 'احفظ التغييرات أولاً'
-                    : 'لم يتم رفع شعار بعد'}
+                    : 'لم يتم رفع ترويسة بعد'}
                 </Text>
               </View>
               {selectedReceiptLogo === 'uploaded' && (
@@ -435,13 +435,14 @@ export default function ShopSettingsScreen() {
             >
               <View style={styles.logoOptionImageContainer}>
                 <Image
-                  source={require('@/assets/images/icon.png')}
+                  source={require('@/assets/images/altaraf.png')}
                   style={styles.logoOptionImage}
+                  resizeMode="contain"
                 />
               </View>
               <View style={styles.logoOptionContent}>
-                <Text style={styles.logoOptionTitle}>الشعار الافتراضي</Text>
-                <Text style={styles.logoOptionDescription}>شعار التطبيق الأزرق</Text>
+                <Text style={styles.logoOptionTitle}>الترويسة الافتراضية</Text>
+                <Text style={styles.logoOptionDescription}>الترويسة الأساسية للمحل</Text>
               </View>
               {selectedReceiptLogo === 'default' && (
                 <View style={styles.logoOptionCheck}>

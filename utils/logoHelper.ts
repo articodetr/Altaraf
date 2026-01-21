@@ -3,7 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '@/lib/supabase';
 import { Asset } from 'expo-asset';
 
-const DEFAULT_LOGO_ASSET = require('../assets/images/logo_1.png');
+const DEFAULT_LOGO_ASSET = require('../assets/images/altaraf.png');
 const BUCKET_NAME = 'shop-logos';
 const FIXED_SETTINGS_ID = '00000000-0000-0000-0000-000000000000';
 
