@@ -15,11 +15,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DEFAULT_ACCOUNT_STATEMENT_TEMPLATE,
-  DEFAULT_TRANSACTION_TEMPLATE,
   DEFAULT_SHARE_ACCOUNT_TEMPLATE,
   AVAILABLE_VARIABLES,
   processAccountStatementTemplate,
-  processTransactionTemplate,
   processShareAccountTemplate,
 } from '@/utils/whatsappTemplateHelper';
 
@@ -31,11 +29,9 @@ export default function WhatsAppTemplatesScreen() {
 
   const [accountStatementTemplate, setAccountStatementTemplate] = useState('');
   const [shareAccountTemplate, setShareAccountTemplate] = useState('');
-  const [transactionTemplate, setTransactionTemplate] = useState('');
 
   const [showAccountPreview, setShowAccountPreview] = useState(false);
   const [showShareAccountPreview, setShowShareAccountPreview] = useState(false);
-  const [showTransactionPreview, setShowTransactionPreview] = useState(false);
 
   useEffect(() => {
     loadTemplates();
@@ -49,14 +45,11 @@ export default function WhatsAppTemplatesScreen() {
       setShareAccountTemplate(
         settings.whatsapp_share_account_template || DEFAULT_SHARE_ACCOUNT_TEMPLATE
       );
-      setTransactionTemplate(
-        settings.whatsapp_transaction_template || DEFAULT_TRANSACTION_TEMPLATE
-      );
     }
   };
 
   const handleSave = async () => {
-    if (!accountStatementTemplate.trim() || !shareAccountTemplate.trim() || !transactionTemplate.trim()) {
+    if (!accountStatementTemplate.trim() || !shareAccountTemplate.trim()) {
       Alert.alert('تنبيه', 'لا يمكن ترك القوالب فارغة');
       return;
     }
@@ -69,7 +62,6 @@ export default function WhatsAppTemplatesScreen() {
         .update({
           whatsapp_account_statement_template: accountStatementTemplate,
           whatsapp_share_account_template: shareAccountTemplate,
-          whatsapp_transaction_template: transactionTemplate,
         })
         .eq('id', settings?.id);
 
@@ -97,7 +89,6 @@ export default function WhatsAppTemplatesScreen() {
           onPress: () => {
             setAccountStatementTemplate(DEFAULT_ACCOUNT_STATEMENT_TEMPLATE);
             setShareAccountTemplate(DEFAULT_SHARE_ACCOUNT_TEMPLATE);
-            setTransactionTemplate(DEFAULT_TRANSACTION_TEMPLATE);
           },
         },
       ]
@@ -120,19 +111,6 @@ export default function WhatsAppTemplatesScreen() {
       date: 'الأحد، 21 يناير 2026',
       balances: '1,500.00 $ (لك)\n200,000 ريال (عليك)',
       movements: '1. حركة واردة - 1,000.00 $\n   التاريخ: 15/01/2026\n\n2. حركة صادرة - 500.00 $\n   التاريخ: 18/01/2026',
-      shopName: settings?.shop_name || 'محل الحوالات المالية',
-      shopPhone: settings?.shop_phone || '777123456',
-    });
-  };
-
-  const getTransactionPreview = () => {
-    return processTransactionTemplate(transactionTemplate, {
-      customerName: 'محمد أحمد',
-      transactionNumber: 'TRX-12345',
-      amountSent: '1,000.00',
-      amountReceived: '800,000',
-      currencySent: 'USD',
-      currencyReceived: 'YER',
       shopName: settings?.shop_name || 'محل الحوالات المالية',
       shopPhone: settings?.shop_phone || '777123456',
     });
@@ -244,52 +222,6 @@ export default function WhatsAppTemplatesScreen() {
             <View style={styles.previewCard}>
               <Text style={styles.previewLabel}>معاينة:</Text>
               <Text style={styles.previewText}>{getShareAccountPreview()}</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>قالب رسالة تفاصيل الحوالة</Text>
-          <Text style={styles.sectionDescription}>
-            الرسالة التي يتم إرسالها عند الضغط على زر الواتساب من صفحة تفاصيل الحوالة
-          </Text>
-
-          <View style={styles.templateCard}>
-            <TextInput
-              style={styles.templateInput}
-              value={transactionTemplate}
-              onChangeText={setTransactionTemplate}
-              multiline
-              placeholder="أدخل قالب الرسالة..."
-              placeholderTextColor="#9CA3AF"
-              textAlignVertical="top"
-            />
-          </View>
-
-          <View style={styles.variablesCard}>
-            <Text style={styles.variablesTitle}>المتغيرات المتاحة:</Text>
-            {AVAILABLE_VARIABLES.transaction.map((item, index) => (
-              <View key={index} style={styles.variableItem}>
-                <Text style={styles.variableCode}>{item.variable}</Text>
-                <Text style={styles.variableDescription}>{item.description}</Text>
-              </View>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            style={styles.previewButton}
-            onPress={() => setShowTransactionPreview(!showTransactionPreview)}
-          >
-            <Eye size={18} color="#3B82F6" />
-            <Text style={styles.previewButtonText}>
-              {showTransactionPreview ? 'إخفاء المعاينة' : 'معاينة الرسالة'}
-            </Text>
-          </TouchableOpacity>
-
-          {showTransactionPreview && (
-            <View style={styles.previewCard}>
-              <Text style={styles.previewLabel}>معاينة:</Text>
-              <Text style={styles.previewText}>{getTransactionPreview()}</Text>
             </View>
           )}
         </View>
