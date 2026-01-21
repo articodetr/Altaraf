@@ -134,17 +134,13 @@ export function generateAccountStatementHTML(
         })
         .join('');
 
-      // Add a page break AFTER each currency section except the last
-      const sectionPageBreakClass = idx < currencies.length - 1 ? 'page-break-after' : '';
-
       return `
-        <div class="currency-section ${sectionPageBreakClass}">
-          <div class="section-title">
-            <h2>كشف حساب ${customerName} - ${currencyName}</h2>
-          </div>
-
+        <div class="currency-section">
           <table>
             <thead>
+              <tr class="currency-header-row">
+                <th colspan="5" class="currency-header">كشف حساب ${customerName} - ${currencyName}</th>
+              </tr>
               <tr>
                 <th style="width: 12%;">التاريخ</th>
                 <th style="width: 38%;">البيان</th>
@@ -187,7 +183,7 @@ export function generateAccountStatementHTML(
     /* الهوامش القياسية للورق A4 */
     @page {
       size: A4 portrait;
-      margin: 20mm 12mm 12mm 12mm;
+      margin: 15mm 20mm 15mm 20mm;
       orphans: 3;
       widows: 3;
     }
@@ -223,27 +219,20 @@ export function generateAccountStatementHTML(
       margin-bottom: 0;
     }
 
-    /* فاصل بين عملات مختلفة - صفحة جديدة لكل عملة */
-    .currency-section.page-break-after {
-      page-break-after: always;
-      break-after: page;
-    }
-
-    .section-title {
-      border: 2px solid #000;
-      padding: 10px 16px;
-      text-align: center;
-      background: #f9fafb;
-      page-break-inside: avoid;
+    /* عنوان العملة داخل thead - يتكرر في كل صفحة */
+    .currency-header-row {
       break-inside: avoid;
-      margin-bottom: 0;
+      page-break-inside: avoid;
     }
 
-    .section-title h2 {
-      font-size: 18px;
+    .currency-header {
+      background-color: #f9fafb !important;
+      font-size: 18px !important;
       font-weight: bold;
-      margin: 0;
-      color: #111827;
+      padding: 12px 16px !important;
+      border: 2px solid #000 !important;
+      text-align: center;
+      color: #111827 !important;
     }
 
     /* جدول واحد لكل عملة - يملأ الصفحات تلقائياً */
@@ -351,7 +340,7 @@ export function generateAccountStatementHTML(
 
       @page {
         size: A4 portrait;
-        margin: 20mm 12mm 12mm 12mm;
+        margin: 15mm 20mm 15mm 20mm;
         orphans: 3;
         widows: 3;
       }
