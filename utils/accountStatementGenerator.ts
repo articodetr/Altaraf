@@ -184,7 +184,7 @@ export function generateAccountStatementHTML(
   <title>كشف الحساب - ${customerName}</title>
   <style>
     @page {
-      margin: 1.5cm 1cm;
+      margin: 2cm 1.5cm;
     }
 
     * {
@@ -204,14 +204,13 @@ export function generateAccountStatementHTML(
     }
 
     .header-wrapper {
-      margin-bottom: 25px;
+      margin-bottom: 30px;
       page-break-inside: avoid;
       page-break-after: avoid;
     }
 
     .currency-section {
       margin-bottom: 40px;
-      page-break-inside: avoid;
     }
 
     .section-title {
@@ -220,6 +219,8 @@ export function generateAccountStatementHTML(
       margin-bottom: 0;
       text-align: center;
       background: #f9fafb;
+      page-break-inside: avoid;
+      page-break-after: avoid;
     }
 
     .section-title h2 {
@@ -284,6 +285,7 @@ export function generateAccountStatementHTML(
       color: #6b7280;
       padding: 10px 0;
       border-top: 1px solid #e5e7eb;
+      page-break-inside: avoid;
     }
 
     ${generatePDFHeaderStyles()}
@@ -301,7 +303,7 @@ export function generateAccountStatementHTML(
       }
 
       @page {
-        margin: 1.5cm 1cm;
+        margin: 2cm 1.5cm;
       }
 
       .header-wrapper {
@@ -310,11 +312,32 @@ export function generateAccountStatementHTML(
       }
 
       .currency-section {
-        page-break-inside: avoid;
+        page-break-inside: auto;
       }
 
       table {
+        page-break-inside: auto;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tbody tr {
         page-break-inside: avoid;
+        page-break-after: auto;
+      }
+
+      .total-row {
+        page-break-before: avoid;
+        background-color: #f3f4f6 !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+
+      .final-row {
+        page-break-before: avoid;
+        background-color: #dbeafe !important;
+        -webkit-print-color-adjust: exact !important;
       }
 
       th {
@@ -322,19 +345,10 @@ export function generateAccountStatementHTML(
         -webkit-print-color-adjust: exact !important;
       }
 
-      .total-row {
-        background-color: #f3f4f6 !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-
-      .final-row {
-        background-color: #dbeafe !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-
       .section-title {
         background: #f9fafb !important;
         -webkit-print-color-adjust: exact !important;
+        page-break-after: avoid;
       }
     }
   </style>
