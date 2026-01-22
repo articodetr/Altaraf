@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 const readline = require('readline');
 
-const username = 'g.alomary@articode.com.tr';
+const username = 'arti_code';
 const password = 'jlal99662870502';
 
 console.log('Starting EAS CLI login...');

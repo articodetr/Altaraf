@@ -33,8 +33,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser",
-      "@react-native-community/datetimepicker"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -44,9 +43,9 @@
       "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91enF6aXVmaG1kaW1qcXVmc29lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNDM4NzUsImV4cCI6MjA4MzYxOTg3NX0.frcvfjcgPG2zZvVh__otByDzy_ckr5HjmxQi6574rW8",
       "router": {},
       "eas": {
-        "projectId": "555461a5-5e7e-46e3-b18b-072ef9470c81"
+        "projectId": "e882c2a8-6dd9-459f-88da-b57f96684e6f"
       }
     },
-    "owner": "arti_codeg"
+    "owner": "arti_codetr"
   }
 }
