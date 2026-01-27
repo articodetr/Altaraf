@@ -43,9 +43,8 @@
       "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91enF6aXVmaG1kaW1qcXVmc29lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNDM4NzUsImV4cCI6MjA4MzYxOTg3NX0.frcvfjcgPG2zZvVh__otByDzy_ckr5HjmxQi6574rW8",
       "router": {},
       "eas": {
-        "projectId": "e882c2a8-6dd9-459f-88da-b57f96684e6f"
+        "projectId": "5d332117-2fc7-4d87-aa04-efd1009f893f"
       }
-    },
-    "owner": "arti_codetr"
+    }
   }
 }
