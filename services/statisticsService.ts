@@ -71,9 +71,10 @@ export class StatisticsService {
         .lte('created_at', end),
       supabase
         .from('account_movements')
-        .select('amount, commission, commission_currency')
+        .select('amount, commission, commission_currency, is_commission_movement')
         .gte('created_at', start)
-        .lte('created_at', end),
+        .lte('created_at', end)
+        .or('is_commission_movement.is.null,is_commission_movement.eq.false'),
     ]);
 
     const transactionAmount =
@@ -235,8 +236,9 @@ export class StatisticsService {
   static async fetchCashFlowByCurrency(): Promise<CashFlowByCurrency[]> {
     const { data: movements, error } = await supabase
       .from('account_movements')
-      .select('amount, currency, movement_type, is_internal_transfer')
-      .or('is_internal_transfer.is.null,is_internal_transfer.eq.false');
+      .select('amount, currency, movement_type, is_internal_transfer, commission, commission_currency, is_commission_movement')
+      .or('is_internal_transfer.is.null,is_internal_transfer.eq.false')
+      .or('is_commission_movement.is.null,is_commission_movement.eq.false');
 
     if (error) {
       console.error('Error fetching cash flow:', error);
@@ -262,10 +264,31 @@ export class StatisticsService {
         };
       }
 
-      if (movement.movement_type === 'outgoing') {
+      if (movement.movement_type === 'incoming') {
         flowByCurrency[currency].totalReceived += amount;
-      } else if (movement.movement_type === 'incoming') {
+      } else if (movement.movement_type === 'outgoing') {
         flowByCurrency[currency].totalPaid += amount;
+      }
+
+      if (
+        movement.movement_type === 'outgoing' &&
+        movement.commission &&
+        Number(movement.commission) > 0 &&
+        movement.commission_currency
+      ) {
+        const commissionCurrency = movement.commission_currency;
+        const commissionAmount = Number(movement.commission);
+
+        if (!flowByCurrency[commissionCurrency]) {
+          flowByCurrency[commissionCurrency] = {
+            currency: commissionCurrency,
+            totalReceived: 0,
+            totalPaid: 0,
+            netFlow: 0,
+          };
+        }
+
+        flowByCurrency[commissionCurrency].totalPaid += commissionAmount;
       }
     });
 
@@ -300,7 +323,10 @@ export class StatisticsService {
       ] = await Promise.all([
         supabase.from('customers').select('id', { count: 'exact' }),
         supabase.from('transactions').select('amount_sent'),
-        supabase.from('account_movements').select('amount'),
+        supabase
+          .from('account_movements')
+          .select('amount')
+          .or('is_commission_movement.is.null,is_commission_movement.eq.false'),
         supabase.from('total_balances_by_currency').select('*'),
         this.fetchPeriodStats(today, today),
         this.fetchPeriodStats(yesterday, yesterday),

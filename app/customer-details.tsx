@@ -34,6 +34,7 @@ import {
   formatMovementsForWhatsApp,
   getFormattedDate,
 } from '@/utils/whatsappTemplates';
+import { formatNumber } from '@/utils/formatNumber';
 
 interface GroupedMovements {
   [key: string]: AccountMovement[];
@@ -267,7 +268,7 @@ export default function CustomerDetailsScreen() {
         ? 'الحساب متساوي'
         : formatBalancesForWhatsApp(
             balances.map(b => ({
-              currency: getCurrencySymbol(b.currency),
+              currency: b.currency,
               balance: b.balance
             }))
           );
@@ -538,7 +539,7 @@ export default function CustomerDetailsScreen() {
       ? 'الحساب متساوي'
       : formatBalancesForWhatsApp(
           balances.map(b => ({
-            currency: getCurrencySymbol(b.currency),
+            currency: b.currency,
             balance: b.balance
           }))
         );
@@ -1058,6 +1059,10 @@ export default function CustomerDetailsScreen() {
           currentBalances={currencyBalances}
           onSuccess={() => {
             loadCustomerData();
+            // عرض رسالة النجاح بعد إغلاق الـ modal
+            setTimeout(() => {
+              Alert.alert('نجح', 'تمت إضافة الحركة بنجاح');
+            }, 300);
           }}
         />
       )}

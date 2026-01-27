@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TextStyle, ViewStyle, StyleSheet } from 'react-native';
+import { formatNumber } from '@/utils/formatNumber';
 
 interface CurrencyAmountProps {
   amount: number | string;
@@ -22,10 +23,7 @@ export default function CurrencyAmount({
   const isNegative = numericAmount < 0;
   const absAmount = Math.abs(numericAmount);
 
-  const formattedAmount = absAmount.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const formattedAmount = formatNumber(absAmount);
 
   const displayAmount = showSign
     ? `${isNegative ? '-' : '+'} ${formattedAmount}`

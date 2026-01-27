@@ -1,6 +1,8 @@
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
+import { CURRENCIES } from '@/types/database';
+import { formatNumber } from './formatNumber';
 
 export interface TemplateVariables {
   customer_name?: string;
@@ -87,6 +89,14 @@ export function replaceTemplateVariables(
 }
 
 /**
+ * Get currency full name from currency code
+ */
+function getCurrencyName(currencyCode: string): string {
+  const currency = CURRENCIES.find(c => c.code === currencyCode);
+  return currency ? currency.name : currencyCode;
+}
+
+/**
  * Format balances for display in WhatsApp message
  */
 export function formatBalancesForWhatsApp(
@@ -99,10 +109,11 @@ export function formatBalancesForWhatsApp(
   return balances
     .map((item) => {
       const balanceValue = Number(item.balance);
-      const direction = balanceValue > 0 ? 'له' : balanceValue < 0 ? 'عليه' : '';
-      const absBalance = Math.abs(balanceValue).toFixed(2);
+      const direction = balanceValue > 0 ? 'لكم' : balanceValue < 0 ? 'عليكم' : '';
+      const absBalance = formatNumber(Math.abs(balanceValue));
+      const currencyName = getCurrencyName(item.currency);
 
-      return `${item.currency}: ${absBalance} ${direction}`;
+      return `${direction}: ${absBalance} ${currencyName}`;
     })
     .join('\n');
 }
@@ -127,7 +138,7 @@ export function formatMovementsForWhatsApp(
     .map((movement, index) => {
       const date = format(new Date(movement.created_at), 'dd/MM/yyyy', { locale: ar });
       const type = movement.movement_type === 'incoming' ? 'وارد' : 'صادر';
-      const amount = Number(movement.amount).toFixed(2);
+      const amount = formatNumber(Number(movement.amount));
       const notes = movement.notes ? `\n  الملاحظات: ${movement.notes}` : '';
 
       return `${index + 1}. ${date} - ${type}: ${amount} ${movement.currency}${notes}`;
@@ -157,7 +168,7 @@ export function getAccountStatementVariables(): Array<{ key: string; description
     { key: '{customer_name}', description: 'اسم العميل', example: 'محمد أحمد' },
     { key: '{account_number}', description: 'رقم الحساب', example: 'A-001' },
     { key: '{date}', description: 'التاريخ الحالي', example: '21 يناير 2026' },
-    { key: '{balance}', description: 'الأرصدة بجميع العملات', example: 'USD: 1000.00 له\nYER: 500.00 عليه' },
+    { key: '{balance}', description: 'الأرصدة بجميع العملات', example: 'لكم: 1,000 دولار أمريكي\nعليكم: 500.20 ريال يمني' },
   ];
 }
 
@@ -169,8 +180,8 @@ export function getShareAccountVariables(): Array<{ key: string; description: st
     { key: '{customer_name}', description: 'اسم العميل', example: 'محمد أحمد' },
     { key: '{account_number}', description: 'رقم الحساب', example: 'A-001' },
     { key: '{date}', description: 'التاريخ الحالي', example: '21 يناير 2026' },
-    { key: '{balances}', description: 'الأرصدة التفصيلية', example: 'USD: 1000.00 له\nYER: 500.00 عليه' },
-    { key: '{movements}', description: 'قائمة الحركات المالية', example: '1. 20/01/2026 - وارد: 500.00 USD' },
+    { key: '{balances}', description: 'الأرصدة التفصيلية', example: 'لكم: 1,000 دولار أمريكي\nعليكم: 500.20 ريال يمني' },
+    { key: '{movements}', description: 'قائمة الحركات المالية', example: '1. 20/01/2026 - وارد: 500 USD' },
     { key: '{shop_name}', description: 'اسم المحل', example: 'محل الصرافة' },
   ];
 }
@@ -186,9 +197,9 @@ export function generatePreviewMessage(
     customer_name: 'محمد أحمد',
     account_number: 'A-001',
     date: getFormattedDate(),
-    balance: 'USD: 1000.00 له\nYER: 250000.00 له',
-    balances: 'USD: 1000.00 له\nYER: 250000.00 له\nSAR: 500.00 عليه',
-    movements: '1. 20/01/2026 - وارد: 500.00 USD\n  الملاحظات: دفعة أولى\n\n2. 19/01/2026 - صادر: 100000.00 YER',
+    balance: 'لكم: 1,000 دولار أمريكي\nلكم: 250,000 ريال يمني',
+    balances: 'لكم: 1,000 دولار أمريكي\nلكم: 250,000 ريال يمني\nعليكم: 500.50 ريال سعودي',
+    movements: '1. 20/01/2026 - وارد: 500 USD\n  الملاحظات: دفعة أولى\n\n2. 19/01/2026 - صادر: 100,000 YER',
     shop_name: 'محل الصرافة - الطرف للحوالات المالية',
   };
 

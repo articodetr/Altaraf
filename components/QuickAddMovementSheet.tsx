@@ -203,10 +203,14 @@ export default function QuickAddMovementSheet({
 
       await saveLastUsedCurrency(currency);
       triggerRefresh('movements');
+
+      // إغلاق الـ modal مباشرة لتجنب مشكلة تكرار الرصيد
+      onClose();
+
+      // استدعاء onSuccess بعد إغلاق الـ modal
       onSuccess();
 
       if (withPrint) {
-        onClose();
         router.push({
           pathname: '/receipt-preview',
           params: {
@@ -215,13 +219,6 @@ export default function QuickAddMovementSheet({
             customerAccountNumber: customerAccountNumber,
           },
         });
-      } else {
-        Alert.alert('نجح', 'تمت إضافة الحركة بنجاح', [
-          {
-            text: 'حسناً',
-            onPress: onClose,
-          },
-        ]);
       }
     } catch (error) {
       console.error('Error adding movement:', error);
