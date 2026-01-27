@@ -103,7 +103,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.profileIconContainer}>
-            <SettingsIcon size={36} color="#4F46E5" />
+            <SettingsIcon size={48} color="#4F46E5" />
           </View>
           <Text style={styles.profileName}>{settings?.shop_name || 'الصرافة'}</Text>
           {settings?.shop_phone && (
@@ -116,7 +116,7 @@ export default function SettingsScreen() {
             <TouchableOpacity key={index} style={styles.menuItem} onPress={item.onPress}>
               <View style={styles.menuItemContent}>
                 <View style={[styles.menuIcon, { backgroundColor: `${item.color}15` }]}>
-                  <item.icon size={22} color={item.color} />
+                  <item.icon size={24} color={item.color} />
                 </View>
                 <View style={styles.menuTextContainer}>
                   <Text style={styles.menuTitle}>{item.title}</Text>
@@ -177,13 +177,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   profileIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   profileName: {
     fontSize: 24,
@@ -221,9 +221,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,

@@ -19,9 +19,7 @@ rl.on('line', (line) => {
 
   // Auto-respond to prompts
   if (line.includes('Would you like to automatically create an EAS project') ||
-      line.includes('Would you like to create a project') ||
-      line.includes('Existing EAS project found') ||
-      line.includes('Configure this project')) {
+      line.includes('Would you like to create a project')) {
     child.stdin.write('y\n');
   }
 
